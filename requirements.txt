@@ -1,0 +1,29 @@
+# Core Web Scraping
+selenium>=4.15.0
+webdriver-manager==4.0.1  # Auto-manages ChromeDriver
+requests>=2.31.0
+beautifulsoup4==4.12.2
+lxml>=4.9.3  # Parser for BeautifulSoup
+
+# Document Processing
+PyPDF2==3.0.1  # PDF parsing
+openpyxl==3.1.2  # Excel file handling
+pandas==2.2.0  # Data manipulation
+
+# AWS Integration
+boto3>=1.29.7  # AWS S3 uploads
+botocore>=1.32.7  # AWS core
+
+# Airflow (optional - comment out if not using Airflow)
+# apache-airflow==2.7.3
+# apache-airflow-providers-amazon==8.9.0
+
+# Utilities
+python-dotenv==1.0.0  # Environment variables
+urllib3==2.1.0  # URL handling
+
+# Development/Testing (optional)
+pytest==7.4.3
+pytest-timeout==2.2.0
+black==23.11.0  # Code formatting
+flake8==6.1.0  # Linting

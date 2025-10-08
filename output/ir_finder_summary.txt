@@ -1,0 +1,113 @@
+============================================================
+INVESTOR RELATIONS PAGE FINDER - SUMMARY REPORT
+============================================================
+
+Session Start: 2025-10-04T13:29:33.900948
+Session End: 2025-10-04T13:38:37.389408
+
+Total Companies: 30
+Successful: 30
+Failed: 0
+Success Rate: 30/30 (100.0%)
+
+STRATEGIES USED:
+----------------------------------------
+subdomain_pattern: 28
+link_navigation: 1
+common_path: 1
+
+SUCCESSFUL COMPANIES:
+----------------------------------------
+JPM: https://www.jpmorganchase.com/
+  Strategy: subdomain_pattern
+  Score: 35
+AAPL: https://investor.apple.com/investor-relations/default.aspx
+  Strategy: subdomain_pattern
+  Score: 110
+MSFT: https://www.microsoft.com/en-us/investor/default
+  Strategy: subdomain_pattern
+  Score: 75
+NVDA: https://investor.nvidia.com/home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 100
+HD: https://ir.homedepot.com/
+  Strategy: subdomain_pattern
+  Score: 80
+DIS: https://investors.thewaltdisneycompany.com/
+  Strategy: subdomain_pattern
+  Score: 65
+KO: https://investors.coca-colacompany.com/
+  Strategy: subdomain_pattern
+  Score: 70
+MMM: https://investors.3m.com/
+  Strategy: subdomain_pattern
+  Score: 105
+V: https://investor.visa.com/
+  Strategy: subdomain_pattern
+  Score: 90
+JNJ: https://investor.jnj.com/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 90
+WMT: https://stock.walmart.com/
+  Strategy: subdomain_pattern
+  Score: 75
+PG: https://www.pginvestor.com/overview/default.aspx
+  Strategy: link_navigation
+  Score: 100
+UNH: https://www.unitedhealthgroup.com/investors.html
+  Strategy: subdomain_pattern
+  Score: 110
+NKE: https://investors.nike.com/Home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 65
+MCD: https://corporate.mcdonalds.com/investors
+  Strategy: subdomain_pattern
+  Score: 20
+INTC: https://www.intc.com/
+  Strategy: subdomain_pattern
+  Score: 105
+VZ: https://www.verizon.com/about/investors
+  Strategy: subdomain_pattern
+  Score: 95
+IBM: https://www.ibm.com/investor
+  Strategy: subdomain_pattern
+  Score: 80
+BA: https://investors.boeing.com/investors/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 95
+CAT: https://investors.caterpillar.com/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 100
+GS: https://www.goldmansachs.com/investor
+  Strategy: subdomain_pattern
+  Score: 40
+AXP: https://ir.americanexpress.com/investor-relations/default.aspx
+  Strategy: subdomain_pattern
+  Score: 125
+CSCO: https://investor.cisco.com/home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 125
+CVX: https://investor.chevron.com/
+  Strategy: subdomain_pattern
+  Score: 20
+TRV: https://investor.travelers.com/home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 110
+DOW: https://investors.dow.com/en/investors/default.aspx
+  Strategy: subdomain_pattern
+  Score: 80
+AMGN: https://investors.amgen.com/
+  Strategy: subdomain_pattern
+  Score: 55
+HON: https://investor.honeywell.com/
+  Strategy: common_path
+  Score: 90
+CRM: https://investor.salesforce.com/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 65
+MRK: https://www.merck.com/investor-relations/
+  Strategy: subdomain_pattern
+  Score: 100
+
+FAILED COMPANIES:
+----------------------------------------

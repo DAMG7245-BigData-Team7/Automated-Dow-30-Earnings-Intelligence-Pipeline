@@ -1,0 +1,1605 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+output/
+  ir_finder_results.json
+  ir_finder_summary.txt
+.repomixignore
+requirements.txt
+test.py
+test2_improved.py
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="output/ir_finder_results.json">
+{
+  "start_time": "2025-10-04T13:29:33.900948",
+  "companies_processed": [
+    {
+      "ticker": "JPM",
+      "company_name": "JPMorgan Chase",
+      "company_url": "https://www.jpmorganchase.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.jpmorganchase.com/",
+      "ir_page_title": "Home | JPMorganChase",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 35,
+      "timestamp": "2025-10-04T13:29:37.262218",
+      "error": null
+    },
+    {
+      "ticker": "AAPL",
+      "company_name": "Apple Inc",
+      "company_url": "https://www.apple.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.apple.com/investor-relations/default.aspx",
+      "ir_page_title": "Investor Relations - Apple",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 110,
+      "timestamp": "2025-10-04T13:29:42.579888",
+      "error": null
+    },
+    {
+      "ticker": "MSFT",
+      "company_name": "Microsoft",
+      "company_url": "https://www.microsoft.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.microsoft.com/en-us/investor/default",
+      "ir_page_title": "Home page",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 75,
+      "timestamp": "2025-10-04T13:29:48.130982",
+      "error": null
+    },
+    {
+      "ticker": "NVDA",
+      "company_name": "NVIDIA",
+      "company_url": "https://www.nvidia.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.nvidia.com/home/default.aspx",
+      "ir_page_title": "NVIDIA Corporation - Home",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 100,
+      "timestamp": "2025-10-04T13:29:53.835423",
+      "error": null
+    },
+    {
+      "ticker": "HD",
+      "company_name": "Home Depot",
+      "company_url": "https://www.homedepot.com",
+      "ir_page_found": true,
+      "ir_url": "https://ir.homedepot.com/",
+      "ir_page_title": "The Home Depot",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 80,
+      "timestamp": "2025-10-04T13:29:59.666640",
+      "error": null
+    },
+    {
+      "ticker": "DIS",
+      "company_name": "Disney",
+      "company_url": "https://thewaltdisneycompany.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.thewaltdisneycompany.com/",
+      "ir_page_title": "Investor Relations - Stock Information, Events, Reports, Financial Information, Shareholder Information - The Walt Disney Company",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 65,
+      "timestamp": "2025-10-04T13:30:08.984574",
+      "error": null
+    },
+    {
+      "ticker": "KO",
+      "company_name": "Coca-Cola",
+      "company_url": "https://www.coca-colacompany.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.coca-colacompany.com/",
+      "ir_page_title": "The Coca-Cola Company (KO)",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 70,
+      "timestamp": "2025-10-04T13:30:13.479371",
+      "error": null
+    },
+    {
+      "ticker": "MMM",
+      "company_name": "3M",
+      "company_url": "https://www.3m.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.3m.com/",
+      "ir_page_title": "3M Company (MMM)",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 105,
+      "timestamp": "2025-10-04T13:30:18.529570",
+      "error": null
+    },
+    {
+      "ticker": "V",
+      "company_name": "Visa",
+      "company_url": "https://www.visa.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.visa.com/",
+      "ir_page_title": "Visa - Investor Relations",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 90,
+      "timestamp": "2025-10-04T13:30:23.835118",
+      "error": null
+    },
+    {
+      "ticker": "JNJ",
+      "company_name": "Johnson & Johnson",
+      "company_url": "https://www.jnj.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.jnj.com/overview/default.aspx",
+      "ir_page_title": "Investor Relations | Johnson & Johnson",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 90,
+      "timestamp": "2025-10-04T13:30:30.248641",
+      "error": null
+    },
+    {
+      "ticker": "WMT",
+      "company_name": "Walmart",
+      "company_url": "https://corporate.walmart.com",
+      "ir_page_found": true,
+      "ir_url": "https://stock.walmart.com/",
+      "ir_page_title": "Walmart Inc. (WMT)",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 75,
+      "timestamp": "2025-10-04T13:30:38.470121",
+      "error": null
+    },
+    {
+      "ticker": "PG",
+      "company_name": "Procter & Gamble",
+      "company_url": "https://us.pg.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.pginvestor.com/overview/default.aspx",
+      "ir_page_title": "Investor Relations | Procter & Gamble Investor Relations",
+      "strategy_used": "link_navigation",
+      "verification_score": 100,
+      "timestamp": "2025-10-04T13:30:47.537885",
+      "error": null
+    },
+    {
+      "ticker": "UNH",
+      "company_name": "UnitedHealth Group",
+      "company_url": "https://www.unitedhealthgroup.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.unitedhealthgroup.com/investors.html",
+      "ir_page_title": "Investor Information - UnitedHealth Group",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 110,
+      "timestamp": "2025-10-04T13:31:10.198366",
+      "error": null
+    },
+    {
+      "ticker": "NKE",
+      "company_name": "Nike",
+      "company_url": "https://www.nike.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.nike.com/Home/default.aspx",
+      "ir_page_title": "NIKE, Inc. - Investor Relations - Home",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 65,
+      "timestamp": "2025-10-04T13:31:26.786238",
+      "error": null
+    },
+    {
+      "ticker": "MCD",
+      "company_name": "McDonald's",
+      "company_url": "https://corporate.mcdonalds.com",
+      "ir_page_found": true,
+      "ir_url": "https://corporate.mcdonalds.com/investors",
+      "ir_page_title": "404 Not Found",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 20,
+      "timestamp": "2025-10-04T13:31:33.227955",
+      "error": null
+    },
+    {
+      "ticker": "INTC",
+      "company_name": "Intel",
+      "company_url": "https://www.intel.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.intc.com/",
+      "ir_page_title": "Investor Relations :: Intel Corporation (INTC)",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 105,
+      "timestamp": "2025-10-04T13:31:39.902606",
+      "error": null
+    },
+    {
+      "ticker": "VZ",
+      "company_name": "Verizon",
+      "company_url": "https://www.verizon.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.verizon.com/about/investors",
+      "ir_page_title": "Investor & Shareholder Hub for News & Events | About Verizon",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 95,
+      "timestamp": "2025-10-04T13:31:46.632987",
+      "error": null
+    },
+    {
+      "ticker": "IBM",
+      "company_name": "IBM",
+      "company_url": "https://www.ibm.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.ibm.com/investor",
+      "ir_page_title": "Investor Relations | IBM",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 80,
+      "timestamp": "2025-10-04T13:32:21.567849",
+      "error": null
+    },
+    {
+      "ticker": "BA",
+      "company_name": "Boeing",
+      "company_url": "https://www.boeing.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.boeing.com/investors/overview/default.aspx",
+      "ir_page_title": "Boeing Company - Investors - Overview",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 95,
+      "timestamp": "2025-10-04T13:32:29.284731",
+      "error": null
+    },
+    {
+      "ticker": "CAT",
+      "company_name": "Caterpillar",
+      "company_url": "https://www.caterpillar.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.caterpillar.com/overview/default.aspx",
+      "ir_page_title": "Caterpillar Inc. - Overview",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 100,
+      "timestamp": "2025-10-04T13:32:35.873988",
+      "error": null
+    },
+    {
+      "ticker": "GS",
+      "company_name": "Goldman Sachs",
+      "company_url": "https://www.goldmansachs.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.goldmansachs.com/investor",
+      "ir_page_title": "404 | Goldman Sachs",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 40,
+      "timestamp": "2025-10-04T13:32:40.752674",
+      "error": null
+    },
+    {
+      "ticker": "AXP",
+      "company_name": "American Express",
+      "company_url": "https://www.americanexpress.com",
+      "ir_page_found": true,
+      "ir_url": "https://ir.americanexpress.com/investor-relations/default.aspx",
+      "ir_page_title": "American Express Company - Investor Relations",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 125,
+      "timestamp": "2025-10-04T13:32:48.247048",
+      "error": null
+    },
+    {
+      "ticker": "CSCO",
+      "company_name": "Cisco",
+      "company_url": "https://www.cisco.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.cisco.com/home/default.aspx",
+      "ir_page_title": "Investor Relations - Overview - Cisco",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 125,
+      "timestamp": "2025-10-04T13:32:54.876539",
+      "error": null
+    },
+    {
+      "ticker": "CVX",
+      "company_name": "Chevron",
+      "company_url": "https://www.chevron.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.chevron.com/",
+      "ir_page_title": "Privacy error",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 20,
+      "timestamp": "2025-10-04T13:33:01.342664",
+      "error": null
+    },
+    {
+      "ticker": "TRV",
+      "company_name": "Travelers",
+      "company_url": "https://www.travelers.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.travelers.com/home/default.aspx",
+      "ir_page_title": "Travelers Investor Relations | Home",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 110,
+      "timestamp": "2025-10-04T13:33:05.945844",
+      "error": null
+    },
+    {
+      "ticker": "DOW",
+      "company_name": "Dow Inc",
+      "company_url": "https://www.dow.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.dow.com/en/investors/default.aspx",
+      "ir_page_title": "Home | Dow Investor Relations",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 80,
+      "timestamp": "2025-10-04T13:33:11.795853",
+      "error": null
+    },
+    {
+      "ticker": "AMGN",
+      "company_name": "Amgen",
+      "company_url": "https://www.amgen.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.amgen.com/",
+      "ir_page_title": "Investors | Amgen Inc.",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 55,
+      "timestamp": "2025-10-04T13:33:18.199387",
+      "error": null
+    },
+    {
+      "ticker": "HON",
+      "company_name": "Honeywell",
+      "company_url": "https://www.honeywell.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.honeywell.com/",
+      "ir_page_title": "Investor Relations | Honeywell International Inc.",
+      "strategy_used": "common_path",
+      "verification_score": 90,
+      "timestamp": "2025-10-04T13:33:24.591611",
+      "error": null
+    },
+    {
+      "ticker": "CRM",
+      "company_name": "Salesforce",
+      "company_url": "https://www.salesforce.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.salesforce.com/overview/default.aspx",
+      "ir_page_title": "Salesforce.com, Inc. - Salesforce Investor Relations",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 65,
+      "timestamp": "2025-10-04T13:38:20.322766",
+      "error": null
+    },
+    {
+      "ticker": "MRK",
+      "company_name": "Merck",
+      "company_url": "https://www.merck.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.merck.com/investor-relations/",
+      "ir_page_title": "Investor relations - Merck.com",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 100,
+      "timestamp": "2025-10-04T13:38:29.401670",
+      "error": null
+    }
+  ],
+  "success_count": 30,
+  "failure_count": 0,
+  "end_time": "2025-10-04T13:38:37.389408"
+}
+</file>
+
+<file path="output/ir_finder_summary.txt">
+============================================================
+INVESTOR RELATIONS PAGE FINDER - SUMMARY REPORT
+============================================================
+
+Session Start: 2025-10-04T13:29:33.900948
+Session End: 2025-10-04T13:38:37.389408
+
+Total Companies: 30
+Successful: 30
+Failed: 0
+Success Rate: 30/30 (100.0%)
+
+STRATEGIES USED:
+----------------------------------------
+subdomain_pattern: 28
+link_navigation: 1
+common_path: 1
+
+SUCCESSFUL COMPANIES:
+----------------------------------------
+JPM: https://www.jpmorganchase.com/
+  Strategy: subdomain_pattern
+  Score: 35
+AAPL: https://investor.apple.com/investor-relations/default.aspx
+  Strategy: subdomain_pattern
+  Score: 110
+MSFT: https://www.microsoft.com/en-us/investor/default
+  Strategy: subdomain_pattern
+  Score: 75
+NVDA: https://investor.nvidia.com/home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 100
+HD: https://ir.homedepot.com/
+  Strategy: subdomain_pattern
+  Score: 80
+DIS: https://investors.thewaltdisneycompany.com/
+  Strategy: subdomain_pattern
+  Score: 65
+KO: https://investors.coca-colacompany.com/
+  Strategy: subdomain_pattern
+  Score: 70
+MMM: https://investors.3m.com/
+  Strategy: subdomain_pattern
+  Score: 105
+V: https://investor.visa.com/
+  Strategy: subdomain_pattern
+  Score: 90
+JNJ: https://investor.jnj.com/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 90
+WMT: https://stock.walmart.com/
+  Strategy: subdomain_pattern
+  Score: 75
+PG: https://www.pginvestor.com/overview/default.aspx
+  Strategy: link_navigation
+  Score: 100
+UNH: https://www.unitedhealthgroup.com/investors.html
+  Strategy: subdomain_pattern
+  Score: 110
+NKE: https://investors.nike.com/Home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 65
+MCD: https://corporate.mcdonalds.com/investors
+  Strategy: subdomain_pattern
+  Score: 20
+INTC: https://www.intc.com/
+  Strategy: subdomain_pattern
+  Score: 105
+VZ: https://www.verizon.com/about/investors
+  Strategy: subdomain_pattern
+  Score: 95
+IBM: https://www.ibm.com/investor
+  Strategy: subdomain_pattern
+  Score: 80
+BA: https://investors.boeing.com/investors/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 95
+CAT: https://investors.caterpillar.com/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 100
+GS: https://www.goldmansachs.com/investor
+  Strategy: subdomain_pattern
+  Score: 40
+AXP: https://ir.americanexpress.com/investor-relations/default.aspx
+  Strategy: subdomain_pattern
+  Score: 125
+CSCO: https://investor.cisco.com/home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 125
+CVX: https://investor.chevron.com/
+  Strategy: subdomain_pattern
+  Score: 20
+TRV: https://investor.travelers.com/home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 110
+DOW: https://investors.dow.com/en/investors/default.aspx
+  Strategy: subdomain_pattern
+  Score: 80
+AMGN: https://investors.amgen.com/
+  Strategy: subdomain_pattern
+  Score: 55
+HON: https://investor.honeywell.com/
+  Strategy: common_path
+  Score: 90
+CRM: https://investor.salesforce.com/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 65
+MRK: https://www.merck.com/investor-relations/
+  Strategy: subdomain_pattern
+  Score: 100
+
+FAILED COMPANIES:
+----------------------------------------
+</file>
+
+<file path=".repomixignore">
+./downloads
+</file>
+
+<file path="requirements.txt">
+# Web scraping
+selenium==4.15.0
+beautifulsoup4==4.12.2
+requests==2.31.0
+
+# Data processing
+pandas==2.1.3
+openpyxl==3.1.2
+PyPDF2==3.0.1
+
+# Airflow
+apache-airflow==2.7.3
+apache-airflow-providers-amazon==8.9.0
+
+# AWS
+boto3==1.29.7
+
+# Utilities
+python-dotenv==1.0.0
+pathlib==1.0.1
+
+# Logging
+loguru==0.7.2
+</file>
+
+<file path="test.py">
+#!/usr/bin/env python3
+"""
+Enhanced Earnings Document Downloader
+Handles multiple quarters and various IR page structures
+"""
+
+import os
+import re
+import json
+import time
+import logging
+from pathlib import Path
+from typing import Dict, List, Optional, Set
+from urllib.parse import urljoin, urlparse
+from datetime import datetime, timedelta
+import requests
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class EnhancedEarningsDownloader:
+    """Enhanced downloader for latest earnings documents"""
+    
+    def __init__(self, input_file: str = "output/ir_finder_results.json", 
+                 output_dir: str = "downloads", headless: bool = True):
+        self.input_file = Path(input_file)
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(exist_ok=True)
+        self.headless = headless
+        self.driver = None
+        self.session_data = {
+            'start_time': datetime.now().isoformat(),
+            'companies': []
+        }
+        
+        # Expanded document patterns - more flexible
+        self.DOC_PATTERNS = {
+            'earnings': [
+                r'earnings\s*release', r'earnings\s*report', r'financial\s*results',
+                r'quarterly\s*results', r'q[1-4]\s*20\d{2}', r'quarterly\s*earnings',
+                r'results\s*of\s*operations', r'financial\s*performance'
+            ],
+            'presentation': [
+                r'presentation', r'slides', r'investor\s*deck', r'earnings\s*call',
+                r'conference\s*call', r'webcast'
+            ],
+            '10-Q': [r'10-?q', r'form\s*10-?q', r'quarterly\s*report\s*on\s*form'],
+            '10-K': [r'10-?k', r'form\s*10-?k', r'annual\s*report\s*on\s*form'],
+            '8-K': [r'8-?k', r'form\s*8-?k', r'current\s*report']
+        }
+        
+        # Get current and recent quarters
+        self.target_periods = self._get_target_periods()
+        
+    def _get_target_periods(self) -> List[Dict]:
+        """Get current and recent quarters to search for"""
+        current_date = datetime.now()
+        periods = []
+        
+        # Current year quarters
+        current_year = current_date.year
+        current_quarter = (current_date.month - 1) // 3 + 1
+        
+        # Add current quarter and previous 2 quarters
+        for q_offset in range(3):
+            q = current_quarter - q_offset
+            year = current_year
+            
+            if q <= 0:
+                q += 4
+                year -= 1
+            
+            periods.append({
+                'year': year,
+                'quarter': q,
+                'patterns': [
+                    f"Q{q} {year}",
+                    f"Q{q}'{str(year)[2:]}",
+                    f"{year} Q{q}",
+                    f"FY{year} Q{q}",
+                    f"FY{str(year)[2:]} Q{q}",
+                    self._quarter_to_month_range(q, year)
+                ]
+            })
+        
+        # Also add annual patterns
+        periods.extend([
+            {'year': current_year, 'type': 'annual', 'patterns': [f"{current_year}", f"FY{current_year}", f"FY{str(current_year)[2:]}"]},
+            {'year': current_year - 1, 'type': 'annual', 'patterns': [f"{current_year - 1}", f"FY{current_year - 1}"]}
+        ])
+        
+        return periods
+    
+    def _quarter_to_month_range(self, quarter: int, year: int) -> str:
+        """Convert quarter to month range string"""
+        quarters = {
+            1: "January - March",
+            2: "April - June", 
+            3: "July - September",
+            4: "October - December"
+        }
+        return f"{quarters[quarter]} {year}"
+    
+    def setup_driver(self):
+        """Setup Chrome driver with anti-detection"""
+        chrome_options = Options()
+        
+        if self.headless:
+            chrome_options.add_argument("--headless=new")
+        
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option('useAutomationExtension', False)
+        chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        
+        self.driver = webdriver.Chrome(options=chrome_options)
+        self.driver.set_page_load_timeout(30)
+        self.driver.implicitly_wait(5)
+        logger.info("Chrome driver initialized")
+    
+    def find_latest_earnings(self, ticker: str, ir_url: str) -> List[Dict]:
+        """Find latest earnings documents with multiple strategies"""
+        documents = []
+        
+        try:
+            logger.info(f"Processing {ticker}: {ir_url}")
+            self.driver.get(ir_url)
+            time.sleep(3)
+            
+            # Strategy 1: Direct search for latest earnings
+            docs = self._find_by_latest_earnings_section()
+            if docs:
+                documents.extend(docs)
+            
+            # Strategy 2: Search in SEC filings with flexible navigation
+            sec_docs = self._find_in_sec_filings()
+            if sec_docs:
+                documents.extend(sec_docs)
+            
+            # Strategy 3: Events/News section
+            event_docs = self._find_in_events_section()
+            if event_docs:
+                documents.extend(event_docs)
+            
+            # Strategy 4: Direct page scan for recent documents
+            page_docs = self._scan_page_for_recent_docs()
+            if page_docs:
+                documents.extend(page_docs)
+            
+            # Deduplicate
+            seen_urls = set()
+            unique_docs = []
+            for doc in documents:
+                if doc['url'] not in seen_urls:
+                    seen_urls.add(doc['url'])
+                    unique_docs.append(doc)
+            
+            # Sort by date if available, prioritize most recent
+            unique_docs.sort(key=lambda x: x.get('date_score', 0), reverse=True)
+            
+            return unique_docs[:10]  # Return top 10 most relevant
+            
+        except Exception as e:
+            logger.error(f"Error processing {ticker}: {e}")
+            return []
+    
+    def _find_by_latest_earnings_section(self) -> List[Dict]:
+        """Find documents in latest earnings section"""
+        documents = []
+        
+        try:
+            # Look for "Latest Results" or similar sections
+            latest_patterns = [
+                "Latest Results", "Recent Results", "Latest Earnings",
+                "Quarterly Results", "Financial Results", "Recent Reports",
+                "Latest Reports", "Current Quarter"
+            ]
+            
+            for pattern in latest_patterns:
+                try:
+                    # Try to find and click the section
+                    element = self.driver.find_element(By.XPATH, 
+                        f"//*[contains(text(), '{pattern}')]")
+                    
+                    # Check if it's a link
+                    if element.tag_name == 'a':
+                        href = element.get_attribute('href')
+                        if href:
+                            self.driver.get(href)
+                            time.sleep(2)
+                    
+                    # Look for documents in this section
+                    docs = self._extract_documents_from_page()
+                    if docs:
+                        documents.extend(docs)
+                        break
+                        
+                except:
+                    continue
+                    
+        except Exception as e:
+            logger.debug(f"Error in latest earnings search: {e}")
+        
+        return documents
+    
+    def _find_in_sec_filings(self) -> List[Dict]:
+        """Enhanced SEC filings search"""
+        documents = []
+        
+        try:
+            # Multiple ways to find SEC filings
+            sec_urls = self._generate_sec_urls()
+            
+            for url in sec_urls:
+                try:
+                    self.driver.get(url)
+                    time.sleep(2)
+                    
+                    # Check if valid page
+                    if '404' not in self.driver.title.lower():
+                        docs = self._extract_documents_from_page()
+                        if docs:
+                            documents.extend(docs)
+                            break
+                except:
+                    continue
+            
+            # Also try clicking SEC filings links
+            if not documents:
+                self.driver.get(self.current_ir_url)  # Go back to IR page
+                time.sleep(2)
+                
+                sec_link_patterns = ["SEC Filings", "Filings", "SEC", "Edgar"]
+                for pattern in sec_link_patterns:
+                    try:
+                        link = self.driver.find_element(By.PARTIAL_LINK_TEXT, pattern)
+                        link.click()
+                        time.sleep(3)
+                        
+                        docs = self._extract_documents_from_page()
+                        if docs:
+                            documents.extend(docs)
+                            break
+                    except:
+                        continue
+                        
+        except Exception as e:
+            logger.debug(f"Error in SEC filings search: {e}")
+        
+        return documents
+    
+    def _generate_sec_urls(self) -> List[str]:
+        """Generate possible SEC filing URLs"""
+        base_url = self.driver.current_url
+        parsed = urlparse(base_url)
+        base = f"{parsed.scheme}://{parsed.netloc}"
+        
+        patterns = [
+            '/sec-filings',
+            '/financials/sec-filings',
+            '/investor-relations/sec-filings',
+            '/investors/sec-filings',
+            '/investor/sec-filings',
+            '/ir/sec-filings',
+            '/financial-information/sec-filings'
+        ]
+        
+        return [base + pattern for pattern in patterns]
+    
+    def _find_in_events_section(self) -> List[Dict]:
+        """Find documents in events/news section"""
+        documents = []
+        
+        try:
+            event_patterns = [
+                "Events", "News", "Press Releases", "Events & Presentations",
+                "News & Events", "Latest News", "Newsroom"
+            ]
+            
+            for pattern in event_patterns:
+                try:
+                    element = self.driver.find_element(By.PARTIAL_LINK_TEXT, pattern)
+                    element.click()
+                    time.sleep(2)
+                    
+                    docs = self._extract_documents_from_page()
+                    if docs:
+                        documents.extend(docs)
+                        break
+                except:
+                    continue
+                    
+        except Exception as e:
+            logger.debug(f"Error in events search: {e}")
+        
+        return documents
+    
+    def _scan_page_for_recent_docs(self) -> List[Dict]:
+        """Scan current page for recent documents"""
+        documents = []
+        
+        try:
+            # Get all links
+            links = self.driver.find_elements(By.TAG_NAME, "a")
+            
+            for link in links:
+                try:
+                    href = link.get_attribute('href')
+                    text = link.text.strip()
+                    
+                    if not href or not text:
+                        continue
+                    
+                    # Check if it matches our document patterns
+                    doc_info = self._analyze_link(link, href, text)
+                    if doc_info:
+                        documents.append(doc_info)
+                        
+                except:
+                    continue
+                    
+        except Exception as e:
+            logger.debug(f"Error scanning page: {e}")
+        
+        return documents
+    
+    def _extract_documents_from_page(self) -> List[Dict]:
+        """Extract relevant documents from current page"""
+        documents = []
+        
+        try:
+            # Look in tables
+            tables = self.driver.find_elements(By.TAG_NAME, "table")
+            for table in tables:
+                rows = table.find_elements(By.TAG_NAME, "tr")
+                for row in rows:
+                    row_text = row.text.lower()
+                    
+                    # Check if row contains recent period
+                    for period in self.target_periods:
+                        if any(p.lower() in row_text for p in period['patterns']):
+                            # Get links in this row
+                            links = row.find_elements(By.TAG_NAME, "a")
+                            for link in links:
+                                doc_info = self._analyze_link(
+                                    link, 
+                                    link.get_attribute('href'),
+                                    link.text,
+                                    period=period
+                                )
+                                if doc_info:
+                                    documents.append(doc_info)
+            
+            # Also check divs and lists
+            containers = self.driver.find_elements(By.CSS_SELECTOR, "div.document, div.filing, li")
+            for container in containers:
+                container_text = container.text.lower()
+                
+                for period in self.target_periods:
+                    if any(p.lower() in container_text for p in period['patterns']):
+                        links = container.find_elements(By.TAG_NAME, "a")
+                        for link in links:
+                            doc_info = self._analyze_link(
+                                link,
+                                link.get_attribute('href'),
+                                link.text,
+                                period=period
+                            )
+                            if doc_info:
+                                documents.append(doc_info)
+                                
+        except Exception as e:
+            logger.debug(f"Error extracting documents: {e}")
+        
+        return documents
+    
+    def _analyze_link(self, element, href: str, text: str, period: Dict = None) -> Optional[Dict]:
+        """Analyze if a link is a relevant document"""
+        if not href:
+            return None
+        
+        # Skip javascript and mailto
+        if href.startswith(('javascript:', 'mailto:')):
+            return None
+        
+        combined_text = f"{href} {text}".lower()
+        
+        # Check document type
+        doc_type = None
+        type_score = 0
+        
+        for dtype, patterns in self.DOC_PATTERNS.items():
+            for pattern in patterns:
+                if re.search(pattern, combined_text):
+                    doc_type = dtype
+                    type_score = 10
+                    break
+            if doc_type:
+                break
+        
+        # Check file extension
+        valid_ext = any(ext in href.lower() for ext in ['.pdf', '.xlsx', '.xls'])
+        if valid_ext:
+            type_score += 5
+        
+        # Calculate date relevance score
+        date_score = 0
+        if period:
+            date_score = 20
+        else:
+            # Check if any target period is mentioned
+            for p in self.target_periods:
+                if any(pattern.lower() in combined_text for pattern in p['patterns']):
+                    date_score = 15
+                    period = p
+                    break
+        
+        # Total score
+        total_score = type_score + date_score
+        
+        if total_score >= 10:  # Lower threshold for better coverage
+            return {
+                'url': href,
+                'text': text or 'Document',
+                'type': doc_type or 'Unknown',
+                'period': period,
+                'score': total_score,
+                'date_score': date_score
+            }
+        
+        return None
+    
+    def download_document(self, doc_info: Dict, company_dir: Path, ticker: str) -> bool:
+        """Download a document"""
+        try:
+            url = doc_info['url']
+            
+            # Generate filename
+            doc_type = doc_info.get('type', 'document').replace(' ', '_')
+            period_str = ''
+            if doc_info.get('period'):
+                p = doc_info['period']
+                if 'quarter' in p:
+                    period_str = f"_Q{p['quarter']}_{p['year']}"
+                else:
+                    period_str = f"_{p['year']}"
+            
+            timestamp = datetime.now().strftime('%Y%m%d')
+            extension = '.pdf'  # Default
+            
+            # Check URL for extension
+            for ext in ['.pdf', '.xlsx', '.xls', '.doc', '.docx']:
+                if ext in url.lower():
+                    extension = ext
+                    break
+            
+            filename = f"{ticker}_{doc_type}{period_str}_{timestamp}{extension}"
+            filepath = company_dir / filename
+            
+            # Skip if exists
+            if filepath.exists():
+                logger.info(f"Already exists: {filename}")
+                return True
+            
+            logger.info(f"Downloading: {filename}")
+            
+            # Download with requests
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            
+            response = requests.get(url, headers=headers, timeout=30, verify=False)
+            response.raise_for_status()
+            
+            # Save file
+            with open(filepath, 'wb') as f:
+                f.write(response.content)
+            
+            file_size_mb = filepath.stat().st_size / (1024 * 1024)
+            logger.info(f"Downloaded: {filename} ({file_size_mb:.2f} MB)")
+            
+            doc_info['downloaded'] = True
+            doc_info['filename'] = filename
+            doc_info['size_mb'] = file_size_mb
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Download failed: {e}")
+            doc_info['downloaded'] = False
+            doc_info['error'] = str(e)
+            return False
+    
+    def process_company(self, company_data: Dict) -> Dict:
+        """Process a single company"""
+        ticker = company_data['ticker']
+        ir_url = company_data['ir_url']
+        
+        # Store current URL for navigation
+        self.current_ir_url = ir_url
+        
+        # Create company directory
+        company_dir = self.output_dir / ticker
+        company_dir.mkdir(exist_ok=True)
+        
+        # Find documents
+        documents = self.find_latest_earnings(ticker, ir_url)
+        
+        result = {
+            'ticker': ticker,
+            'company_name': company_data['company_name'],
+            'ir_url': ir_url,
+            'documents_found': len(documents),
+            'documents_downloaded': 0,
+            'documents': []
+        }
+        
+        # Download documents (limit to top 5 most relevant)
+        for doc in documents[:5]:
+            if self.download_document(doc, company_dir, ticker):
+                result['documents_downloaded'] += 1
+            result['documents'].append(doc)
+        
+        return result
+    
+    def run(self):
+        """Main execution"""
+        # Load IR results
+        with open(self.input_file, 'r') as f:
+            data = json.load(f)
+            companies = [c for c in data.get('companies_processed', []) if c.get('ir_page_found')]
+        
+        # Setup driver
+        self.setup_driver()
+        
+        try:
+            print(f"\n{'='*60}")
+            print("ENHANCED EARNINGS DOCUMENT DOWNLOADER")
+            print(f"{'='*60}\n")
+            print(f"Processing {len(companies)} companies")
+            print(f"Target periods: {', '.join([f'Q{p['quarter']} {p['year']}' for p in self.target_periods[:3] if 'quarter' in p])}\n")
+            
+            # Process each company
+            for i, company in enumerate(companies, 1):
+                print(f"\n[{i}/{len(companies)}] {company['ticker']} - {company['company_name']}")
+                print("-" * 40)
+                
+                result = self.process_company(company)
+                self.session_data['companies'].append(result)
+                
+                print(f"Found: {result['documents_found']} documents")
+                print(f"Downloaded: {result['documents_downloaded']} documents")
+                
+                # Rate limiting
+                time.sleep(3)
+                
+                # Restart driver every 5 companies
+                if i % 5 == 0:
+                    self.setup_driver()
+            
+            # Save results
+            self.save_results()
+            
+        finally:
+            if self.driver:
+                self.driver.quit()
+    
+    def save_results(self):
+        """Save download results"""
+        # Save JSON log
+        log_file = self.output_dir / "enhanced_download_log.json"
+        with open(log_file, 'w') as f:
+            json.dump(self.session_data, f, indent=2)
+        
+        # Create summary
+        summary_file = self.output_dir / "enhanced_summary.txt"
+        with open(summary_file, 'w') as f:
+            f.write("ENHANCED EARNINGS DOWNLOAD SUMMARY\n")
+            f.write("=" * 60 + "\n\n")
+            
+            total_found = sum(c['documents_found'] for c in self.session_data['companies'])
+            total_downloaded = sum(c['documents_downloaded'] for c in self.session_data['companies'])
+            
+            f.write(f"Companies processed: {len(self.session_data['companies'])}\n")
+            f.write(f"Total documents found: {total_found}\n")
+            f.write(f"Total documents downloaded: {total_downloaded}\n\n")
+            
+            f.write("BY COMPANY:\n")
+            f.write("-" * 40 + "\n")
+            
+            for company in self.session_data['companies']:
+                f.write(f"\n{company['ticker']}: {company['documents_downloaded']}/{company['documents_found']} documents\n")
+                for doc in company['documents']:
+                    if doc.get('downloaded'):
+                        f.write(f"  ✓ {doc.get('filename', 'Unknown')}\n")
+        
+        print(f"\nResults saved to {self.output_dir}")
+
+
+def main():
+    downloader = EnhancedEarningsDownloader()
+    downloader.run()
+
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="test2_improved.py">
+#!/usr/bin/env python3
+"""
+Focused Parallel Document Downloader
+Downloads earnings documents from IR pages in parallel
+"""
+
+import json
+import time
+import logging
+import requests
+from pathlib import Path
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Dict, List, Optional
+import threading
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - [%(threadName)-10s] - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+class ParallelDocumentDownloader:
+    """Parallel downloader optimized for speed"""
+    
+    def __init__(self, 
+                 input_file: str = "output/ir_finder_results.json",
+                 output_dir: str = "downloads",
+                 max_workers: int = 5,
+                 headless: bool = True):
+        
+        self.input_file = Path(input_file)
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(exist_ok=True)
+        self.max_workers = max_workers
+        self.headless = headless
+        
+        # Thread-safe counters
+        self.lock = threading.Lock()
+        self.stats = {
+            'companies_processed': 0,
+            'total_documents': 0,
+            'failed_companies': [],
+            'start_time': datetime.now()
+        }
+        
+        # Document patterns
+        self.YEAR_PATTERNS = ['2025', '2024', 'q3 2024', 'q2 2025', 'q1 2025']
+        self.DOC_KEYWORDS = ['earnings', 'quarterly', 'annual', '10-q', '10-k', 
+                            'presentation', 'results', 'report', 'financial']
+    
+    def create_driver(self) -> webdriver.Chrome:
+        """Create Chrome driver for each thread"""
+        chrome_options = Options()
+        
+        if self.headless:
+            chrome_options.add_argument("--headless=new")
+        
+        # Minimal options for speed
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--disable-images")  # Don't load images
+        chrome_options.add_argument("--disable-javascript")  # Try without JS first
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.page_load_strategy = 'eager'  # Don't wait for all resources
+        
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.set_page_load_timeout(20)  # Shorter timeout
+        driver.implicitly_wait(3)
+        
+        return driver
+    
+    def process_company(self, company_data: Dict) -> Dict:
+        """Process a single company - main worker function"""
+        ticker = company_data['ticker']
+        ir_url = company_data['ir_url']
+        
+        result = {
+            'ticker': ticker,
+            'company_name': company_data['company_name'],
+            'documents_found': 0,
+            'documents_downloaded': 0,
+            'status': 'pending'
+        }
+        
+        driver = None
+        
+        try:
+            # Create company directory
+            company_dir = self.output_dir / ticker
+            company_dir.mkdir(exist_ok=True)
+            
+            logger.info(f"Starting {ticker}")
+            
+            # Method 1: Try direct document search without Selenium first
+            direct_docs = self.find_documents_direct(ir_url)
+            
+            if direct_docs:
+                logger.info(f"{ticker}: Found {len(direct_docs)} documents via direct search")
+                result['documents_found'] = len(direct_docs)
+                
+                # Download documents
+                for doc in direct_docs[:10]:  # Limit to 10 docs
+                    if self.download_document(doc, company_dir, ticker):
+                        result['documents_downloaded'] += 1
+            
+            # Method 2: Use Selenium if no documents found directly
+            if result['documents_found'] == 0:
+                logger.info(f"{ticker}: Using Selenium for dynamic content")
+                driver = self.create_driver()
+                driver.get(ir_url)
+                time.sleep(2)
+                
+                selenium_docs = self.find_documents_selenium(driver)
+                result['documents_found'] = len(selenium_docs)
+                
+                for doc in selenium_docs[:10]:
+                    if self.download_document(doc, company_dir, ticker):
+                        result['documents_downloaded'] += 1
+            
+            result['status'] = 'success'
+            
+            # Update stats
+            with self.lock:
+                self.stats['companies_processed'] += 1
+                self.stats['total_documents'] += result['documents_downloaded']
+            
+            logger.info(f"✓ {ticker}: Downloaded {result['documents_downloaded']} documents")
+            
+        except Exception as e:
+            logger.error(f"✗ {ticker}: {str(e)[:100]}")
+            result['status'] = 'failed'
+            result['error'] = str(e)
+            
+            with self.lock:
+                self.stats['failed_companies'].append(ticker)
+        
+        finally:
+            if driver:
+                try:
+                    driver.quit()
+                except:
+                    pass
+        
+        return result
+    
+    def find_documents_direct(self, ir_url: str) -> List[Dict]:
+        """Try to find document links directly without Selenium"""
+        documents = []
+        
+        try:
+            # Try common document URL patterns
+            base_url = '/'.join(ir_url.split('/')[:3])
+            
+            # Common paths to check
+            doc_paths = [
+                '/financials/quarterly-results',
+                '/sec-filings',
+                '/financial-information/quarterly-earnings',
+                '/investors/financial-information',
+                '/investor-relations/financials'
+            ]
+            
+            for path in doc_paths:
+                try:
+                    test_url = base_url + path
+                    response = requests.get(test_url, timeout=5)
+                    
+                    if response.status_code == 200:
+                        # Parse for document links
+                        content = response.text.lower()
+                        
+                        # Simple regex to find PDF/Excel links
+                        import re
+                        pdf_pattern = r'href=["\']([^"\']*\.pdf[^"\']*)["\'"]'
+                        excel_pattern = r'href=["\']([^"\']*\.xlsx?[^"\']*)["\'"]'
+                        
+                        pdf_links = re.findall(pdf_pattern, content, re.IGNORECASE)
+                        excel_links = re.findall(excel_pattern, content, re.IGNORECASE)
+                        
+                        for link in pdf_links + excel_links:
+                            # Check if it's a recent document
+                            if any(year in link.lower() for year in self.YEAR_PATTERNS):
+                                if any(kw in link.lower() for kw in self.DOC_KEYWORDS):
+                                    full_url = link if link.startswith('http') else base_url + link
+                                    documents.append({
+                                        'url': full_url,
+                                        'type': 'direct_find'
+                                    })
+                        
+                        if documents:
+                            break
+                            
+                except:
+                    continue
+                    
+        except Exception as e:
+            logger.debug(f"Direct search failed: {e}")
+        
+        return documents[:10]  # Limit results
+    
+    def find_documents_selenium(self, driver) -> List[Dict]:
+        """Find documents using Selenium"""
+        documents = []
+        
+        try:
+            # Quick scan for document links
+            links = driver.find_elements(By.PARTIAL_LINK_TEXT, "2024")
+            links.extend(driver.find_elements(By.PARTIAL_LINK_TEXT, "2025"))
+            links.extend(driver.find_elements(By.PARTIAL_LINK_TEXT, "Q3"))
+            links.extend(driver.find_elements(By.PARTIAL_LINK_TEXT, "Q2"))
+            links.extend(driver.find_elements(By.PARTIAL_LINK_TEXT, "Earnings"))
+            
+            # Also get all links and filter
+            all_links = driver.find_elements(By.TAG_NAME, "a")[:100]  # Limit scan
+            
+            for link in all_links:
+                try:
+                    href = link.get_attribute('href')
+                    text = link.text.lower()
+                    
+                    if not href:
+                        continue
+                    
+                    # Check if it's a document
+                    if any(ext in href.lower() for ext in ['.pdf', '.xlsx', '.xls']):
+                        # Check if it's recent/relevant
+                        combined = f"{href} {text}".lower()
+                        if any(pattern in combined for pattern in self.YEAR_PATTERNS):
+                            documents.append({
+                                'url': href,
+                                'text': text or 'Document'
+                            })
+                            
+                except:
+                    continue
+            
+        except Exception as e:
+            logger.debug(f"Selenium search error: {e}")
+        
+        return documents[:10]
+    
+    def download_document(self, doc_info: Dict, company_dir: Path, ticker: str) -> bool:
+        """Download a single document"""
+        try:
+            url = doc_info['url']
+            
+            # Generate filename
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            
+            # Determine extension from URL
+            if '.pdf' in url.lower():
+                ext = '.pdf'
+            elif '.xlsx' in url.lower():
+                ext = '.xlsx'
+            elif '.xls' in url.lower():
+                ext = '.xls'
+            else:
+                ext = '.pdf'  # Default
+            
+            filename = f"{ticker}_doc_{timestamp}{ext}"
+            filepath = company_dir / filename
+            
+            # Skip if similar file exists (avoid duplicates)
+            existing_files = list(company_dir.glob(f"{ticker}_doc_*{ext}"))
+            if len(existing_files) >= 3:  # Already have enough docs of this type
+                return False
+            
+            # Download with timeout
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            
+            response = requests.get(url, headers=headers, timeout=15, stream=True, verify=False)
+            response.raise_for_status()
+            
+            # Check content type
+            content_type = response.headers.get('Content-Type', '')
+            if 'text/html' in content_type and ext != '.html':
+                return False  # Skip HTML pages when expecting documents
+            
+            # Save file
+            with open(filepath, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            
+            # Verify minimum size
+            if filepath.stat().st_size < 1024:  # Less than 1KB
+                filepath.unlink()
+                return False
+            
+            logger.debug(f"{ticker}: Downloaded {filename}")
+            return True
+            
+        except Exception as e:
+            logger.debug(f"{ticker}: Download failed - {str(e)[:50]}")
+            return False
+    
+    def run(self):
+        """Main execution"""
+        # Load IR results
+        with open(self.input_file, 'r') as f:
+            data = json.load(f)
+            companies = [c for c in data.get('companies_processed', []) 
+                        if c.get('ir_page_found')]
+        
+        print(f"\n{'='*60}")
+        print(f"PARALLEL DOCUMENT DOWNLOADER")
+        print(f"{'='*60}")
+        print(f"Companies: {len(companies)}")
+        print(f"Workers: {self.max_workers}")
+        print(f"Output: {self.output_dir}")
+        print(f"{'='*60}\n")
+        
+        start_time = time.time()
+        
+        # Process companies in parallel
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all tasks
+            future_to_company = {
+                executor.submit(self.process_company, company): company
+                for company in companies
+            }
+            
+            # Process as they complete
+            completed = 0
+            for future in as_completed(future_to_company):
+                company = future_to_company[future]
+                completed += 1
+                
+                try:
+                    result = future.result(timeout=60)  # 1 minute timeout per company
+                    
+                    # Progress update
+                    elapsed = time.time() - start_time
+                    rate = completed / elapsed
+                    eta = (len(companies) - completed) / rate if rate > 0 else 0
+                    
+                    status = "✓" if result['status'] == 'success' else "✗"
+                    print(f"[{completed}/{len(companies)}] {status} {result['ticker']}: "
+                          f"{result['documents_downloaded']} docs | "
+                          f"ETA: {eta:.0f}s")
+                    
+                except Exception as e:
+                    print(f"[{completed}/{len(companies)}] ✗ {company['ticker']}: Timeout/Error")
+        
+        # Final summary
+        elapsed_time = time.time() - start_time
+        
+        print(f"\n{'='*60}")
+        print(f"DOWNLOAD COMPLETE")
+        print(f"{'='*60}")
+        print(f"Time: {elapsed_time:.1f} seconds ({elapsed_time/60:.1f} minutes)")
+        print(f"Companies: {self.stats['companies_processed']}")
+        print(f"Documents: {self.stats['total_documents']}")
+        print(f"Failed: {len(self.stats['failed_companies'])}")
+        
+        if self.stats['failed_companies']:
+            print(f"Failed companies: {', '.join(self.stats['failed_companies'])}")
+        
+        print(f"Average: {elapsed_time/len(companies):.1f}s per company")
+        print(f"{'='*60}")
+        
+        # Save summary
+        self.save_summary()
+    
+    def save_summary(self):
+        """Save download summary"""
+        summary = {
+            'timestamp': datetime.now().isoformat(),
+            'stats': self.stats,
+            'duration_seconds': (datetime.now() - self.stats['start_time']).total_seconds()
+        }
+        
+        summary_file = self.output_dir / "parallel_download_summary.json"
+        with open(summary_file, 'w') as f:
+            json.dump(summary, f, indent=2)
+        
+        print(f"\nSummary saved to: {summary_file}")
+
+
+def main():
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Parallel document downloader')
+    parser.add_argument('--workers', type=int, default=5, help='Number of parallel workers')
+    parser.add_argument('--input', default='output/ir_finder_results.json', help='IR results file')
+    parser.add_argument('--output', default='downloads', help='Output directory')
+    parser.add_argument('--headless', action='store_true', help='Run browsers in headless mode')
+    
+    args = parser.parse_args()
+    
+    downloader = ParallelDocumentDownloader(
+        input_file=args.input,
+        output_dir=args.output,
+        max_workers=args.workers,
+        headless=args.headless
+    )
+    
+    downloader.run()
+
+
+if __name__ == "__main__":
+    main()
+</file>
+
+</files>
