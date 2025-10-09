@@ -1,3 +1,38 @@
+# Data directories
 /downloads_2025
 /Data/Raw/
 /Data/Parsed/
+/data/
+/quarterly_reports/
+
+# Airflow runtime files
+/airflow/airflow.db*
+/airflow/logs/
+/airflow/airflow.cfg
+/airflow/__pycache__/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environment
+venv/
+env/
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

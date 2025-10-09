@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Enhanced Earnings Document Downloader
-Handles multiple quarters and various IR page structures
+Multi-Strategy Investor Relations Page Finder for Dow 30
+Updated with latest Dow 30 companies as of November 2024
 """
 
 import os
@@ -10,110 +10,88 @@ import json
 import time
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Set
-from urllib.parse import urljoin, urlparse
-from datetime import datetime, timedelta
-import requests
+from typing import Dict, List, Optional, Set, Tuple
+from urllib.parse import urljoin, urlparse, parse_qs
+from datetime import datetime
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import (
+    TimeoutException, 
+    NoSuchElementException,
+    StaleElementReferenceException,
+    WebDriverException,
+    ElementNotInteractableException,
+    ElementClickInterceptedException
+)
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-class EnhancedEarningsDownloader:
-    """Enhanced downloader for latest earnings documents"""
+class MultiStrategyIRFinder:
+    """Multi-strategy IR page finder without hardcoding"""
     
-    def __init__(self, input_file: str = "output/ir_finder_results.json", 
-                 output_dir: str = "downloads", headless: bool = True):
-        self.input_file = Path(input_file)
+    # IR Keywords with priority levels
+    IR_KEYWORDS = {
+        'high': ['investor relations', 'investor relation', 'investors', 'investor'],
+        'medium': ['ir', 'shareholder', 'shareholders', 'stockholder', 'stockholders'],
+        'low': ['financial information', 'investor resources', 'investor center', 
+                 'investor hub', 'financials', 'earnings', 'investor info',
+                 'financial results', 'quarterly results', 'annual report']
+    }
+    
+    # Common IR URL patterns
+    IR_URL_PATTERNS = [
+        r'/investor',
+        r'/investors',
+        r'/ir\b',
+        r'/shareholder',
+        r'/stockholder',
+        r'/financial',
+        r'/investor-relations',
+        r'/investor_relations',
+        r'investor\.',
+        r'investors\.',
+        r'ir\.'
+    ]
+    
+    # IR page verification terms
+    IR_VERIFICATION_TERMS = [
+        'investor relations', 'quarterly results', 'annual report',
+        'earnings', 'financial results', 'sec filing', 'form 10-k',
+        'form 10-q', 'shareholder', 'stock information', 'dividend',
+        'investor presentation', 'proxy statement', 'investor contact'
+    ]
+    
+    def __init__(self, headless: bool = True, output_dir: str = "output"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
-        self.headless = headless
         self.driver = None
+        self.headless = headless
         self.session_data = {
             'start_time': datetime.now().isoformat(),
-            'companies': []
+            'companies_processed': [],
+            'success_count': 0,
+            'failure_count': 0,
+            'dow30_updated': 'November 8, 2024'
         }
         
-        # Expanded document patterns - more flexible
-        self.DOC_PATTERNS = {
-            'earnings': [
-                r'earnings\s*release', r'earnings\s*report', r'financial\s*results',
-                r'quarterly\s*results', r'q[1-4]\s*20\d{2}', r'quarterly\s*earnings',
-                r'results\s*of\s*operations', r'financial\s*performance'
-            ],
-            'presentation': [
-                r'presentation', r'slides', r'investor\s*deck', r'earnings\s*call',
-                r'conference\s*call', r'webcast'
-            ],
-            '10-Q': [r'10-?q', r'form\s*10-?q', r'quarterly\s*report\s*on\s*form'],
-            '10-K': [r'10-?k', r'form\s*10-?k', r'annual\s*report\s*on\s*form'],
-            '8-K': [r'8-?k', r'form\s*8-?k', r'current\s*report']
-        }
-        
-        # Get current and recent quarters
-        self.target_periods = self._get_target_periods()
-        
-    def _get_target_periods(self) -> List[Dict]:
-        """Get current and recent quarters to search for"""
-        current_date = datetime.now()
-        periods = []
-        
-        # Current year quarters
-        current_year = current_date.year
-        current_quarter = (current_date.month - 1) // 3 + 1
-        
-        # Add current quarter and previous 2 quarters
-        for q_offset in range(3):
-            q = current_quarter - q_offset
-            year = current_year
-            
-            if q <= 0:
-                q += 4
-                year -= 1
-            
-            periods.append({
-                'year': year,
-                'quarter': q,
-                'patterns': [
-                    f"Q{q} {year}",
-                    f"Q{q}'{str(year)[2:]}",
-                    f"{year} Q{q}",
-                    f"FY{year} Q{q}",
-                    f"FY{str(year)[2:]} Q{q}",
-                    self._quarter_to_month_range(q, year)
-                ]
-            })
-        
-        # Also add annual patterns
-        periods.extend([
-            {'year': current_year, 'type': 'annual', 'patterns': [f"{current_year}", f"FY{current_year}", f"FY{str(current_year)[2:]}"]},
-            {'year': current_year - 1, 'type': 'annual', 'patterns': [f"{current_year - 1}", f"FY{current_year - 1}"]}
-        ])
-        
-        return periods
-    
-    def _quarter_to_month_range(self, quarter: int, year: int) -> str:
-        """Convert quarter to month range string"""
-        quarters = {
-            1: "January - March",
-            2: "April - June", 
-            3: "July - September",
-            4: "October - December"
-        }
-        return f"{quarters[quarter]} {year}"
-    
     def setup_driver(self):
-        """Setup Chrome driver with anti-detection"""
+        """Setup Chrome driver with optimized options"""
         chrome_options = Options()
         
         if self.headless:
             chrome_options.add_argument("--headless=new")
         
+        # Performance and stability options
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
@@ -121,495 +99,685 @@ class EnhancedEarningsDownloader:
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
-        chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
         
-        self.driver = webdriver.Chrome(options=chrome_options)
-        self.driver.set_page_load_timeout(30)
-        self.driver.implicitly_wait(5)
-        logger.info("Chrome driver initialized")
-    
-    def find_latest_earnings(self, ticker: str, ir_url: str) -> List[Dict]:
-        """Find latest earnings documents with multiple strategies"""
-        documents = []
+        # Enable JavaScript
+        prefs = {
+            "profile.default_content_setting_values.notifications": 2,
+            "javascript.enabled": True
+        }
+        chrome_options.add_experimental_option("prefs", prefs)
         
-        try:
-            logger.info(f"Processing {ticker}: {ir_url}")
-            self.driver.get(ir_url)
-            time.sleep(3)
-            
-            # Strategy 1: Direct search for latest earnings
-            docs = self._find_by_latest_earnings_section()
-            if docs:
-                documents.extend(docs)
-            
-            # Strategy 2: Search in SEC filings with flexible navigation
-            sec_docs = self._find_in_sec_filings()
-            if sec_docs:
-                documents.extend(sec_docs)
-            
-            # Strategy 3: Events/News section
-            event_docs = self._find_in_events_section()
-            if event_docs:
-                documents.extend(event_docs)
-            
-            # Strategy 4: Direct page scan for recent documents
-            page_docs = self._scan_page_for_recent_docs()
-            if page_docs:
-                documents.extend(page_docs)
-            
-            # Deduplicate
-            seen_urls = set()
-            unique_docs = []
-            for doc in documents:
-                if doc['url'] not in seen_urls:
-                    seen_urls.add(doc['url'])
-                    unique_docs.append(doc)
-            
-            # Sort by date if available, prioritize most recent
-            unique_docs.sort(key=lambda x: x.get('date_score', 0), reverse=True)
-            
-            return unique_docs[:10]  # Return top 10 most relevant
-            
-        except Exception as e:
-            logger.error(f"Error processing {ticker}: {e}")
-            return []
-    
-    def _find_by_latest_earnings_section(self) -> List[Dict]:
-        """Find documents in latest earnings section"""
-        documents = []
+        # User agent
+        chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         
         try:
-            # Look for "Latest Results" or similar sections
-            latest_patterns = [
-                "Latest Results", "Recent Results", "Latest Earnings",
-                "Quarterly Results", "Financial Results", "Recent Reports",
-                "Latest Reports", "Current Quarter"
-            ]
-            
-            for pattern in latest_patterns:
-                try:
-                    # Try to find and click the section
-                    element = self.driver.find_element(By.XPATH, 
-                        f"//*[contains(text(), '{pattern}')]")
-                    
-                    # Check if it's a link
-                    if element.tag_name == 'a':
-                        href = element.get_attribute('href')
-                        if href:
-                            self.driver.get(href)
-                            time.sleep(2)
-                    
-                    # Look for documents in this section
-                    docs = self._extract_documents_from_page()
-                    if docs:
-                        documents.extend(docs)
-                        break
-                        
-                except:
-                    continue
-                    
+            self.driver = webdriver.Chrome(options=chrome_options)
+            self.driver.set_page_load_timeout(30)
+            self.driver.implicitly_wait(3)
+            logger.info("Chrome driver initialized successfully")
         except Exception as e:
-            logger.debug(f"Error in latest earnings search: {e}")
-        
-        return documents
+            logger.error(f"Failed to initialize Chrome driver: {e}")
+            raise
     
-    def _find_in_sec_filings(self) -> List[Dict]:
-        """Enhanced SEC filings search"""
-        documents = []
-        
-        try:
-            # Multiple ways to find SEC filings
-            sec_urls = self._generate_sec_urls()
-            
-            for url in sec_urls:
-                try:
-                    self.driver.get(url)
-                    time.sleep(2)
-                    
-                    # Check if valid page
-                    if '404' not in self.driver.title.lower():
-                        docs = self._extract_documents_from_page()
-                        if docs:
-                            documents.extend(docs)
-                            break
-                except:
-                    continue
-            
-            # Also try clicking SEC filings links
-            if not documents:
-                self.driver.get(self.current_ir_url)  # Go back to IR page
-                time.sleep(2)
-                
-                sec_link_patterns = ["SEC Filings", "Filings", "SEC", "Edgar"]
-                for pattern in sec_link_patterns:
-                    try:
-                        link = self.driver.find_element(By.PARTIAL_LINK_TEXT, pattern)
-                        link.click()
-                        time.sleep(3)
-                        
-                        docs = self._extract_documents_from_page()
-                        if docs:
-                            documents.extend(docs)
-                            break
-                    except:
-                        continue
-                        
-        except Exception as e:
-            logger.debug(f"Error in SEC filings search: {e}")
-        
-        return documents
-    
-    def _generate_sec_urls(self) -> List[str]:
-        """Generate possible SEC filing URLs"""
-        base_url = self.driver.current_url
-        parsed = urlparse(base_url)
-        base = f"{parsed.scheme}://{parsed.netloc}"
-        
-        patterns = [
-            '/sec-filings',
-            '/financials/sec-filings',
-            '/investor-relations/sec-filings',
-            '/investors/sec-filings',
-            '/investor/sec-filings',
-            '/ir/sec-filings',
-            '/financial-information/sec-filings'
-        ]
-        
-        return [base + pattern for pattern in patterns]
-    
-    def _find_in_events_section(self) -> List[Dict]:
-        """Find documents in events/news section"""
-        documents = []
-        
-        try:
-            event_patterns = [
-                "Events", "News", "Press Releases", "Events & Presentations",
-                "News & Events", "Latest News", "Newsroom"
-            ]
-            
-            for pattern in event_patterns:
-                try:
-                    element = self.driver.find_element(By.PARTIAL_LINK_TEXT, pattern)
-                    element.click()
-                    time.sleep(2)
-                    
-                    docs = self._extract_documents_from_page()
-                    if docs:
-                        documents.extend(docs)
-                        break
-                except:
-                    continue
-                    
-        except Exception as e:
-            logger.debug(f"Error in events search: {e}")
-        
-        return documents
-    
-    def _scan_page_for_recent_docs(self) -> List[Dict]:
-        """Scan current page for recent documents"""
-        documents = []
-        
-        try:
-            # Get all links
-            links = self.driver.find_elements(By.TAG_NAME, "a")
-            
-            for link in links:
-                try:
-                    href = link.get_attribute('href')
-                    text = link.text.strip()
-                    
-                    if not href or not text:
-                        continue
-                    
-                    # Check if it matches our document patterns
-                    doc_info = self._analyze_link(link, href, text)
-                    if doc_info:
-                        documents.append(doc_info)
-                        
-                except:
-                    continue
-                    
-        except Exception as e:
-            logger.debug(f"Error scanning page: {e}")
-        
-        return documents
-    
-    def _extract_documents_from_page(self) -> List[Dict]:
-        """Extract relevant documents from current page"""
-        documents = []
-        
-        try:
-            # Look in tables
-            tables = self.driver.find_elements(By.TAG_NAME, "table")
-            for table in tables:
-                rows = table.find_elements(By.TAG_NAME, "tr")
-                for row in rows:
-                    row_text = row.text.lower()
-                    
-                    # Check if row contains recent period
-                    for period in self.target_periods:
-                        if any(p.lower() in row_text for p in period['patterns']):
-                            # Get links in this row
-                            links = row.find_elements(By.TAG_NAME, "a")
-                            for link in links:
-                                doc_info = self._analyze_link(
-                                    link, 
-                                    link.get_attribute('href'),
-                                    link.text,
-                                    period=period
-                                )
-                                if doc_info:
-                                    documents.append(doc_info)
-            
-            # Also check divs and lists
-            containers = self.driver.find_elements(By.CSS_SELECTOR, "div.document, div.filing, li")
-            for container in containers:
-                container_text = container.text.lower()
-                
-                for period in self.target_periods:
-                    if any(p.lower() in container_text for p in period['patterns']):
-                        links = container.find_elements(By.TAG_NAME, "a")
-                        for link in links:
-                            doc_info = self._analyze_link(
-                                link,
-                                link.get_attribute('href'),
-                                link.text,
-                                period=period
-                            )
-                            if doc_info:
-                                documents.append(doc_info)
-                                
-        except Exception as e:
-            logger.debug(f"Error extracting documents: {e}")
-        
-        return documents
-    
-    def _analyze_link(self, element, href: str, text: str, period: Dict = None) -> Optional[Dict]:
-        """Analyze if a link is a relevant document"""
-        if not href:
-            return None
-        
-        # Skip javascript and mailto
-        if href.startswith(('javascript:', 'mailto:')):
-            return None
-        
-        combined_text = f"{href} {text}".lower()
-        
-        # Check document type
-        doc_type = None
-        type_score = 0
-        
-        for dtype, patterns in self.DOC_PATTERNS.items():
-            for pattern in patterns:
-                if re.search(pattern, combined_text):
-                    doc_type = dtype
-                    type_score = 10
-                    break
-            if doc_type:
-                break
-        
-        # Check file extension
-        valid_ext = any(ext in href.lower() for ext in ['.pdf', '.xlsx', '.xls'])
-        if valid_ext:
-            type_score += 5
-        
-        # Calculate date relevance score
-        date_score = 0
-        if period:
-            date_score = 20
-        else:
-            # Check if any target period is mentioned
-            for p in self.target_periods:
-                if any(pattern.lower() in combined_text for pattern in p['patterns']):
-                    date_score = 15
-                    period = p
-                    break
-        
-        # Total score
-        total_score = type_score + date_score
-        
-        if total_score >= 10:  # Lower threshold for better coverage
-            return {
-                'url': href,
-                'text': text or 'Document',
-                'type': doc_type or 'Unknown',
-                'period': period,
-                'score': total_score,
-                'date_score': date_score
-            }
-        
-        return None
-    
-    def download_document(self, doc_info: Dict, company_dir: Path, ticker: str) -> bool:
-        """Download a document"""
-        try:
-            url = doc_info['url']
-            
-            # Generate filename
-            doc_type = doc_info.get('type', 'document').replace(' ', '_')
-            period_str = ''
-            if doc_info.get('period'):
-                p = doc_info['period']
-                if 'quarter' in p:
-                    period_str = f"_Q{p['quarter']}_{p['year']}"
-                else:
-                    period_str = f"_{p['year']}"
-            
-            timestamp = datetime.now().strftime('%Y%m%d')
-            extension = '.pdf'  # Default
-            
-            # Check URL for extension
-            for ext in ['.pdf', '.xlsx', '.xls', '.doc', '.docx']:
-                if ext in url.lower():
-                    extension = ext
-                    break
-            
-            filename = f"{ticker}_{doc_type}{period_str}_{timestamp}{extension}"
-            filepath = company_dir / filename
-            
-            # Skip if exists
-            if filepath.exists():
-                logger.info(f"Already exists: {filename}")
-                return True
-            
-            logger.info(f"Downloading: {filename}")
-            
-            # Download with requests
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-            
-            response = requests.get(url, headers=headers, timeout=30, verify=False)
-            response.raise_for_status()
-            
-            # Save file
-            with open(filepath, 'wb') as f:
-                f.write(response.content)
-            
-            file_size_mb = filepath.stat().st_size / (1024 * 1024)
-            logger.info(f"Downloaded: {filename} ({file_size_mb:.2f} MB)")
-            
-            doc_info['downloaded'] = True
-            doc_info['filename'] = filename
-            doc_info['size_mb'] = file_size_mb
-            
-            return True
-            
-        except Exception as e:
-            logger.error(f"Download failed: {e}")
-            doc_info['downloaded'] = False
-            doc_info['error'] = str(e)
-            return False
-    
-    def process_company(self, company_data: Dict) -> Dict:
-        """Process a single company"""
-        ticker = company_data['ticker']
-        ir_url = company_data['ir_url']
-        
-        # Store current URL for navigation
-        self.current_ir_url = ir_url
-        
-        # Create company directory
-        company_dir = self.output_dir / ticker
-        company_dir.mkdir(exist_ok=True)
-        
-        # Find documents
-        documents = self.find_latest_earnings(ticker, ir_url)
-        
+    def find_ir_page_multi_strategy(self, ticker: str, name: str, url: str) -> Dict:
+        """Use multiple strategies to find IR page"""
         result = {
             'ticker': ticker,
-            'company_name': company_data['company_name'],
-            'ir_url': ir_url,
-            'documents_found': len(documents),
-            'documents_downloaded': 0,
-            'documents': []
+            'company_name': name,
+            'company_url': url,
+            'ir_page_found': False,
+            'ir_url': None,
+            'ir_page_title': None,
+            'strategy_used': None,
+            'verification_score': 0,
+            'timestamp': datetime.now().isoformat(),
+            'error': None
         }
         
-        # Download documents (limit to top 5 most relevant)
-        for doc in documents[:5]:
-            if self.download_document(doc, company_dir, ticker):
-                result['documents_downloaded'] += 1
-            result['documents'].append(doc)
+        try:
+            # Strategy 1: Try common IR subdomain patterns
+            ir_url = self._try_common_subdomains(url)
+            if ir_url:
+                result['ir_url'] = ir_url
+                result['ir_page_found'] = True
+                result['strategy_used'] = 'subdomain_pattern'
+                result['ir_page_title'] = self.driver.title
+                result['verification_score'] = self._calculate_ir_score()
+                return result
+            
+            # Strategy 2: Search for IR links on main page
+            self.driver.get(url)
+            time.sleep(3)
+            
+            # Look for IR links in different page areas
+            ir_link_data = self._find_ir_link_comprehensive()
+            if ir_link_data:
+                # Try to navigate to the IR page
+                if self._navigate_to_ir_page(ir_link_data):
+                    result['ir_url'] = self.driver.current_url
+                    result['ir_page_found'] = True
+                    result['strategy_used'] = 'link_navigation'
+                    result['ir_page_title'] = self.driver.title
+                    result['verification_score'] = self._calculate_ir_score()
+                    return result
+            
+            # Strategy 3: Check common IR URL paths
+            ir_url = self._try_common_paths(url)
+            if ir_url:
+                result['ir_url'] = ir_url
+                result['ir_page_found'] = True
+                result['strategy_used'] = 'common_path'
+                result['ir_page_title'] = self.driver.title
+                result['verification_score'] = self._calculate_ir_score()
+                return result
+            
+            # Strategy 4: Search page source for hidden IR links
+            ir_url = self._search_page_source_for_ir(url)
+            if ir_url:
+                result['ir_url'] = ir_url
+                result['ir_page_found'] = True
+                result['strategy_used'] = 'page_source_search'
+                result['ir_page_title'] = self.driver.title
+                result['verification_score'] = self._calculate_ir_score()
+                return result
+                
+        except Exception as e:
+            logger.error(f"Error finding IR page for {ticker}: {e}")
+            result['error'] = str(e)
         
         return result
     
-    def run(self):
-        """Main execution"""
-        # Load IR results
-        with open(self.input_file, 'r') as f:
-            data = json.load(f)
-            companies = [c for c in data.get('companies_processed', []) if c.get('ir_page_found')]
+    def _try_common_subdomains(self, base_url: str) -> Optional[str]:
+        """Try common IR subdomain patterns"""
+        parsed = urlparse(base_url)
+        domain = parsed.netloc.replace('www.', '')
         
-        # Setup driver
-        self.setup_driver()
+        # Common IR subdomain patterns
+        subdomain_patterns = [
+            f'https://investor.{domain}',
+            f'https://investors.{domain}',
+            f'https://ir.{domain}',
+            f'https://{domain}/investor',
+            f'https://{domain}/investors',
+            f'https://{domain}/investor-relations',
+            f'https://{domain}/ir'
+        ]
+        
+        for pattern in subdomain_patterns:
+            try:
+                self.driver.get(pattern)
+                time.sleep(2)
+                
+                # Check if it's an IR page
+                if self._verify_ir_page():
+                    logger.info(f"Found IR page via subdomain: {pattern}")
+                    return self.driver.current_url
+            except:
+                continue
+        
+        return None
+    
+    def _find_ir_link_comprehensive(self) -> Optional[Dict]:
+        """Comprehensive search for IR links on the page"""
+        strategies = [
+            self._find_ir_link_in_footer,
+            self._find_ir_link_in_header,
+            self._find_ir_link_in_navigation,
+            self._find_ir_link_anywhere
+        ]
+        
+        for strategy in strategies:
+            link_data = strategy()
+            if link_data:
+                return link_data
+        
+        return None
+    
+    def _find_ir_link_in_footer(self) -> Optional[Dict]:
+        """Search for IR links in the footer"""
+        try:
+            # Common footer selectors
+            footer_selectors = [
+                "footer",
+                "[role='contentinfo']",
+                ".footer",
+                "#footer",
+                "[class*='footer']",
+                "[id*='footer']"
+            ]
+            
+            for selector in footer_selectors:
+                try:
+                    footer = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    links = footer.find_elements(By.TAG_NAME, "a")
+                    
+                    for link in links:
+                        link_data = self._analyze_link_for_ir(link)
+                        if link_data:
+                            logger.info(f"Found IR link in footer: {link_data['text']}")
+                            return link_data
+                except:
+                    continue
+        except:
+            pass
+        
+        return None
+    
+    def _find_ir_link_in_header(self) -> Optional[Dict]:
+        """Search for IR links in the header"""
+        try:
+            # Common header selectors
+            header_selectors = [
+                "header",
+                "[role='banner']",
+                ".header",
+                "#header",
+                "nav",
+                ".navbar",
+                "[class*='header']",
+                "[id*='header']"
+            ]
+            
+            for selector in header_selectors:
+                try:
+                    header = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    links = header.find_elements(By.TAG_NAME, "a")
+                    
+                    for link in links:
+                        link_data = self._analyze_link_for_ir(link)
+                        if link_data:
+                            logger.info(f"Found IR link in header: {link_data['text']}")
+                            return link_data
+                except:
+                    continue
+        except:
+            pass
+        
+        return None
+    
+    def _find_ir_link_in_navigation(self) -> Optional[Dict]:
+        """Search for IR links in navigation menus"""
+        try:
+            # Look for navigation elements
+            nav_selectors = [
+                "nav",
+                "[role='navigation']",
+                ".navigation",
+                ".nav",
+                ".menu",
+                "[class*='menu']",
+                "[class*='nav']"
+            ]
+            
+            for selector in nav_selectors:
+                try:
+                    nav = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    links = nav.find_elements(By.TAG_NAME, "a")
+                    
+                    for link in links:
+                        link_data = self._analyze_link_for_ir(link)
+                        if link_data:
+                            logger.info(f"Found IR link in navigation: {link_data['text']}")
+                            return link_data
+                except:
+                    continue
+        except:
+            pass
+        
+        return None
+    
+    def _find_ir_link_anywhere(self) -> Optional[Dict]:
+        """Search for IR links anywhere on the page"""
+        try:
+            # Get all links
+            all_links = self.driver.find_elements(By.TAG_NAME, "a")
+            
+            # Score and sort links
+            scored_links = []
+            for link in all_links:
+                link_data = self._analyze_link_for_ir(link)
+                if link_data:
+                    scored_links.append(link_data)
+            
+            # Sort by score
+            scored_links.sort(key=lambda x: x.get('score', 0), reverse=True)
+            
+            if scored_links:
+                logger.info(f"Found {len(scored_links)} potential IR links")
+                return scored_links[0]  # Return highest scoring link
+        except:
+            pass
+        
+        return None
+    
+    def _analyze_link_for_ir(self, link) -> Optional[Dict]:
+        """Analyze a link element for IR relevance"""
+        try:
+            # Get link properties
+            href = link.get_attribute('href')
+            text = link.text.strip()
+            title = link.get_attribute('title') or ''
+            aria_label = link.get_attribute('aria-label') or ''
+            
+            # Also check for text in child elements if main text is empty
+            if not text:
+                try:
+                    text = link.find_element(By.XPATH, ".//*").text.strip()
+                except:
+                    pass
+            
+            if not href:
+                return None
+            
+            # Calculate score
+            score = 0
+            combined_text = f"{text} {title} {aria_label} {href}".lower()
+            
+            # Check keywords
+            for priority, keywords in self.IR_KEYWORDS.items():
+                for keyword in keywords:
+                    if keyword in combined_text:
+                        if priority == 'high':
+                            score += 10
+                        elif priority == 'medium':
+                            score += 5
+                        else:
+                            score += 2
+            
+            # Check URL patterns
+            for pattern in self.IR_URL_PATTERNS:
+                if re.search(pattern, href.lower()):
+                    score += 15
+            
+            if score > 0:
+                return {
+                    'element': link,
+                    'href': href,
+                    'text': text or title or aria_label or 'IR Link',
+                    'score': score
+                }
+        except:
+            pass
+        
+        return None
+    
+    def _navigate_to_ir_page(self, link_data: Dict) -> bool:
+        """Navigate to IR page using various methods"""
+        href = link_data['href']
+        
+        # Method 1: Direct navigation
+        try:
+            self.driver.get(href)
+            time.sleep(3)
+            if self._verify_ir_page():
+                return True
+        except:
+            pass
+        
+        # Method 2: JavaScript navigation
+        try:
+            self.driver.execute_script(f"window.location.href = '{href}'")
+            time.sleep(3)
+            if self._verify_ir_page():
+                return True
+        except:
+            pass
+        
+        # Method 3: Click the element
+        try:
+            element = link_data.get('element')
+            if element:
+                self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
+                time.sleep(1)
+                element.click()
+                time.sleep(3)
+                if self._verify_ir_page():
+                    return True
+        except:
+            pass
+        
+        return False
+    
+    def _try_common_paths(self, base_url: str) -> Optional[str]:
+        """Try common IR URL paths"""
+        common_paths = [
+            '/investors',
+            '/investor',
+            '/investor-relations',
+            '/investor_relations',
+            '/ir',
+            '/shareholders',
+            '/shareholder',
+            '/financial-information',
+            '/financials'
+        ]
+        
+        base = base_url.rstrip('/')
+        
+        for path in common_paths:
+            try:
+                test_url = base + path
+                self.driver.get(test_url)
+                time.sleep(2)
+                
+                if self._verify_ir_page():
+                    logger.info(f"Found IR page via common path: {test_url}")
+                    return self.driver.current_url
+            except:
+                continue
+        
+        return None
+    
+    def _search_page_source_for_ir(self, url: str) -> Optional[str]:
+        """Search page source for IR links"""
+        try:
+            self.driver.get(url)
+            time.sleep(2)
+            page_source = self.driver.page_source.lower()
+            
+            # Look for IR URLs in the page source
+            ir_url_patterns = [
+                r'href=["\']([^"\']*investor[^"\']*)["\']',
+                r'href=["\']([^"\']*ir[^"\']*)["\']',
+                r'href=["\']([^"\']*shareholder[^"\']*)["\']'
+            ]
+            
+            for pattern in ir_url_patterns:
+                matches = re.findall(pattern, page_source)
+                for match in matches:
+                    # Filter out non-IR links
+                    if any(term in match for term in ['career', 'job', 'blog', 'news', 'press']):
+                        continue
+                    
+                    # Construct full URL
+                    if match.startswith('http'):
+                        test_url = match
+                    elif match.startswith('/'):
+                        test_url = urljoin(url, match)
+                    else:
+                        continue
+                    
+                    # Test the URL
+                    try:
+                        self.driver.get(test_url)
+                        time.sleep(2)
+                        if self._verify_ir_page():
+                            logger.info(f"Found IR page via source search: {test_url}")
+                            return self.driver.current_url
+                    except:
+                        continue
+        except:
+            pass
+        
+        return None
+    
+    def _verify_ir_page(self) -> bool:
+        """Verify if current page is an IR page"""
+        try:
+            # Check URL
+            current_url = self.driver.current_url.lower()
+            url_score = sum(1 for pattern in self.IR_URL_PATTERNS 
+                          if re.search(pattern, current_url))
+            
+            # Check title
+            title = self.driver.title.lower()
+            title_score = sum(1 for term in ['investor', 'shareholder', 'financial', 'ir ']
+                            if term in title)
+            
+            # Check page content
+            try:
+                # Use JavaScript to get text content
+                body_text = self.driver.execute_script(
+                    "return document.body.innerText || document.body.textContent || '';"
+                ).lower()[:5000]
+            except:
+                body_text = ""
+            
+            # Count IR indicators
+            content_score = sum(1 for term in self.IR_VERIFICATION_TERMS 
+                              if term in body_text)
+            
+            # Verification logic
+            total_score = url_score * 2 + title_score * 2 + content_score
+            
+            return total_score >= 3
+            
+        except Exception as e:
+            logger.debug(f"Error verifying IR page: {e}")
+            return False
+    
+    def _calculate_ir_score(self) -> int:
+        """Calculate confidence score for IR page"""
+        score = 0
         
         try:
-            print(f"\n{'='*60}")
-            print("ENHANCED EARNINGS DOCUMENT DOWNLOADER")
-            print(f"{'='*60}\n")
-            print(f"Processing {len(companies)} companies")
-            print(f"Target periods: {', '.join([f'Q{p['quarter']} {p['year']}' for p in self.target_periods[:3] if 'quarter' in p])}\n")
+            url = self.driver.current_url.lower()
+            title = self.driver.title.lower()
             
-            # Process each company
-            for i, company in enumerate(companies, 1):
-                print(f"\n[{i}/{len(companies)}] {company['ticker']} - {company['company_name']}")
-                print("-" * 40)
-                
-                result = self.process_company(company)
-                self.session_data['companies'].append(result)
-                
-                print(f"Found: {result['documents_found']} documents")
-                print(f"Downloaded: {result['documents_downloaded']} documents")
-                
-                # Rate limiting
-                time.sleep(3)
-                
-                # Restart driver every 5 companies
-                if i % 5 == 0:
-                    self.setup_driver()
+            # URL scoring
+            if 'investor' in url: score += 20
+            if 'ir' in url: score += 15
+            if 'shareholder' in url: score += 10
             
-            # Save results
-            self.save_results()
+            # Title scoring
+            if 'investor' in title: score += 15
+            if 'financial' in title: score += 10
             
-        finally:
-            if self.driver:
-                self.driver.quit()
+            # Content scoring
+            try:
+                body_text = self.driver.execute_script(
+                    "return document.body.innerText || document.body.textContent || '';"
+                ).lower()[:5000]
+                
+                important_terms = {
+                    'investor relations': 20,
+                    'annual report': 15,
+                    'quarterly results': 15,
+                    'earnings': 10,
+                    '10-k': 10,
+                    '10-q': 10,
+                    'sec filing': 10,
+                    'financial results': 10
+                }
+                
+                for term, points in important_terms.items():
+                    if term in body_text:
+                        score += points
+            except:
+                pass
+            
+            return score
+            
+        except:
+            return 0
     
-    def save_results(self):
-        """Save download results"""
-        # Save JSON log
-        log_file = self.output_dir / "enhanced_download_log.json"
-        with open(log_file, 'w') as f:
-            json.dump(self.session_data, f, indent=2)
+    def process_company(self, ticker: str, name: str, url: str) -> Dict:
+        """Process a single company"""
+        logger.info(f"Processing {ticker} - {name}")
         
-        # Create summary
-        summary_file = self.output_dir / "enhanced_summary.txt"
-        with open(summary_file, 'w') as f:
-            f.write("ENHANCED EARNINGS DOWNLOAD SUMMARY\n")
-            f.write("=" * 60 + "\n\n")
-            
-            total_found = sum(c['documents_found'] for c in self.session_data['companies'])
-            total_downloaded = sum(c['documents_downloaded'] for c in self.session_data['companies'])
-            
-            f.write(f"Companies processed: {len(self.session_data['companies'])}\n")
-            f.write(f"Total documents found: {total_found}\n")
-            f.write(f"Total documents downloaded: {total_downloaded}\n\n")
-            
-            f.write("BY COMPANY:\n")
-            f.write("-" * 40 + "\n")
-            
-            for company in self.session_data['companies']:
-                f.write(f"\n{company['ticker']}: {company['documents_downloaded']}/{company['documents_found']} documents\n")
-                for doc in company['documents']:
-                    if doc.get('downloaded'):
-                        f.write(f"  ✓ {doc.get('filename', 'Unknown')}\n")
+        result = self.find_ir_page_multi_strategy(ticker, name, url)
         
-        print(f"\nResults saved to {self.output_dir}")
+        # Update session data
+        if result['ir_page_found']:
+            logger.info(f"✓ {ticker}: Successfully found IR page using {result['strategy_used']}")
+            self.session_data['success_count'] += 1
+        else:
+            logger.warning(f"✗ {ticker}: Could not find IR page")
+            self.session_data['failure_count'] += 1
+        
+        self.session_data['companies_processed'].append(result)
+        
+        # Save intermediate results
+        self._save_results()
+        
+        return result
+    
+    def _save_results(self):
+        """Save results to JSON file"""
+        output_file = self.output_dir / "ir_finder_results.json"
+        
+        try:
+            with open(output_file, 'w') as f:
+                json.dump(self.session_data, f, indent=2)
+            logger.debug(f"Results saved to {output_file}")
+        except Exception as e:
+            logger.error(f"Error saving results: {e}")
+    
+    def close(self):
+        """Close driver and finalize results"""
+        if self.driver:
+            self.driver.quit()
+            logger.info("Driver closed")
+        
+        # Final save
+        self.session_data['end_time'] = datetime.now().isoformat()
+        self._save_results()
+        
+        # Create summary report
+        self._create_summary_report()
+    
+    def _create_summary_report(self):
+        """Create summary report"""
+        summary_file = self.output_dir / "ir_finder_summary.txt"
+        
+        try:
+            with open(summary_file, 'w') as f:
+                f.write("="*60 + "\n")
+                f.write("INVESTOR RELATIONS PAGE FINDER - SUMMARY REPORT\n")
+                f.write("="*60 + "\n\n")
+                
+                f.write(f"Session Start: {self.session_data['start_time']}\n")
+                f.write(f"Session End: {self.session_data.get('end_time', 'N/A')}\n")
+                f.write(f"Dow 30 List Updated: {self.session_data.get('dow30_updated', 'N/A')}\n\n")
+                
+                f.write(f"Total Companies: {len(self.session_data['companies_processed'])}\n")
+                f.write(f"Successful: {self.session_data['success_count']}\n")
+                f.write(f"Failed: {self.session_data['failure_count']}\n")
+                f.write(f"Success Rate: {self.session_data['success_count']}/{len(self.session_data['companies_processed'])} ")
+                f.write(f"({100*self.session_data['success_count']/max(1,len(self.session_data['companies_processed'])):.1f}%)\n\n")
+                
+                # Strategy breakdown
+                strategies = {}
+                for company in self.session_data['companies_processed']:
+                    if company['ir_page_found']:
+                        strategy = company.get('strategy_used', 'unknown')
+                        strategies[strategy] = strategies.get(strategy, 0) + 1
+                
+                if strategies:
+                    f.write("STRATEGIES USED:\n")
+                    f.write("-"*40 + "\n")
+                    for strategy, count in strategies.items():
+                        f.write(f"{strategy}: {count}\n")
+                    f.write("\n")
+                
+                f.write("SUCCESSFUL COMPANIES:\n")
+                f.write("-"*40 + "\n")
+                for company in self.session_data['companies_processed']:
+                    if company['ir_page_found']:
+                        f.write(f"{company['ticker']}: {company['ir_url']}\n")
+                        f.write(f"  Strategy: {company.get('strategy_used', 'unknown')}\n")
+                        f.write(f"  Score: {company.get('verification_score', 0)}\n")
+                
+                f.write("\nFAILED COMPANIES:\n")
+                f.write("-"*40 + "\n")
+                for company in self.session_data['companies_processed']:
+                    if not company['ir_page_found']:
+                        f.write(f"{company['ticker']}: {company.get('error', 'No IR page found')}\n")
+                
+            logger.info(f"Summary report saved to {summary_file}")
+            
+        except Exception as e:
+            logger.error(f"Error creating summary report: {e}")
 
 
 def main():
-    downloader = EnhancedEarningsDownloader()
-    downloader.run()
+    """Main execution"""
+    
+    # Updated Dow 30 companies as of November 8, 2024
+    DOW30_COMPANIES = [
+        # Companies sorted alphabetically by ticker
+        ("AAPL", "Apple Inc.", "https://www.apple.com"),
+        ("AMGN", "Amgen Inc.", "https://www.amgen.com"),
+        ("AMZN", "Amazon.com Inc.", "https://www.amazon.com"),  # Added Feb 26, 2024
+        ("AXP", "American Express", "https://www.americanexpress.com"),
+        ("BA", "Boeing", "https://www.boeing.com"),
+        ("CAT", "Caterpillar", "https://www.caterpillar.com"),
+        ("CRM", "Salesforce", "https://www.salesforce.com"),
+        ("CSCO", "Cisco", "https://www.cisco.com"),
+        ("CVX", "Chevron", "https://www.chevron.com"),
+        ("DIS", "The Walt Disney Company", "https://thewaltdisneycompany.com"),
+        ("GS", "Goldman Sachs", "https://www.goldmansachs.com"),
+        ("HD", "The Home Depot", "https://www.homedepot.com"),
+        ("HON", "Honeywell", "https://www.honeywell.com"),
+        ("IBM", "IBM", "https://www.ibm.com"),
+        ("JNJ", "Johnson & Johnson", "https://www.jnj.com"),
+        ("JPM", "JPMorgan Chase", "https://www.jpmorganchase.com"),
+        ("KO", "Coca-Cola", "https://www.coca-colacompany.com"),
+        ("MCD", "McDonald's", "https://corporate.mcdonalds.com"),
+        ("MMM", "3M", "https://www.3m.com"),
+        ("MRK", "Merck", "https://www.merck.com"),
+        ("MSFT", "Microsoft", "https://www.microsoft.com"),
+        ("NKE", "Nike", "https://www.nike.com"),
+        ("NVDA", "NVIDIA", "https://www.nvidia.com"),  # Added Nov 8, 2024
+        ("PG", "Procter & Gamble", "https://us.pg.com"),
+        ("SHW", "The Sherwin-Williams Company", "https://www.sherwin-williams.com"),  # Added Nov 8, 2024
+        ("TRV", "Travelers", "https://www.travelers.com"),
+        ("UNH", "UnitedHealth Group", "https://www.unitedhealthgroup.com"),
+        ("V", "Visa", "https://www.visa.com"),
+        ("VZ", "Verizon", "https://www.verizon.com"),
+        ("WMT", "Walmart", "https://corporate.walmart.com")
+    ]
+    
+    # Initialize finder
+    finder = MultiStrategyIRFinder(headless=True)
+    
+    try:
+        # Setup driver
+        finder.setup_driver()
+        
+        print("="*60)
+        print("MULTI-STRATEGY INVESTOR RELATIONS PAGE DISCOVERY")
+        print("Latest Dow 30 Companies (Updated November 8, 2024)")
+        print("="*60)
+        
+        # Display recent changes
+        print("\n📌 Recent Dow 30 Changes:")
+        print("  • NVDA (NVIDIA) - Added November 8, 2024")
+        print("  • SHW (Sherwin-Williams) - Added November 8, 2024")
+        print("  • AMZN (Amazon) - Added February 26, 2024")
+        print("  • Removed: INTC (Intel), DOW (Dow Inc.)")
+        print("")
+        
+        # Process each company
+        for i, (ticker, name, url) in enumerate(DOW30_COMPANIES, 1):
+            print(f"\n[{i}/{len(DOW30_COMPANIES)}] Processing {ticker} - {name}")
+            print("-"*40)
+            
+            result = finder.process_company(ticker, name, url)
+            
+            if result['ir_page_found']:
+                print(f"✓ SUCCESS: Found IR page")
+                print(f"  URL: {result['ir_url']}")
+                print(f"  Strategy: {result['strategy_used']}")
+                print(f"  Score: {result['verification_score']}")
+            else:
+                print(f"✗ FAILED: Could not find IR page")
+            
+            # Rate limiting
+            time.sleep(2)
+        
+        print("\n" + "="*60)
+        print("PROCESSING COMPLETE")
+        print(f"Success Rate: {finder.session_data['success_count']}/{len(DOW30_COMPANIES)}")
+        print(f"Results saved to: {finder.output_dir}")
+        print("="*60)
+        
+    except KeyboardInterrupt:
+        print("\n\nProcess interrupted by user")
+    except Exception as e:
+        print(f"\n\nFatal error: {e}")
+    finally:
+        finder.close()
 
 
 if __name__ == "__main__":
