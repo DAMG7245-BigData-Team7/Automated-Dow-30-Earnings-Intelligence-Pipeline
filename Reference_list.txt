@@ -1,0 +1,34 @@
+
+| Ticker | Company Name | Sector | Industry | Website |
+|--------|--------------|--------|----------|---------|
+| AAPL | Apple Inc. | Technology | Consumer Electronics | www.apple.com |
+| AMGN | Amgen Inc. | Healthcare | Biotechnology | www.amgen.com |
+| AMZN | Amazon.com Inc. | Consumer Cyclical | E-Commerce & Cloud | www.amazon.com |
+| AXP | American Express Company | Financial | Credit Services | www.americanexpress.com |
+| BA | The Boeing Company | Industrials | Aerospace & Defense | www.boeing.com |
+| CAT | Caterpillar Inc. | Industrials | Construction & Mining Equipment | www.caterpillar.com |
+| CRM | Salesforce Inc. | Technology | Cloud Software | www.salesforce.com |
+| CSCO | Cisco Systems Inc. | Technology | Networking Equipment | www.cisco.com |
+| CVX | Chevron Corporation | Energy | Oil & Gas | www.chevron.com |
+| DIS | The Walt Disney Company | Communication Services | Entertainment | www.thewaltdisneycompany.com |
+| GS | The Goldman Sachs Group Inc. | Financial | Investment Banking | www.goldmansachs.com |
+| HD | The Home Depot Inc. | Consumer Cyclical | Home Improvement Retail | www.homedepot.com |
+| HON | Honeywell International Inc. | Industrials | Diversified Industrials | www.honeywell.com |
+| IBM | International Business Machines | Technology | IT Services & Consulting | www.ibm.com |
+| JNJ | Johnson & Johnson | Healthcare | Pharmaceuticals | www.jnj.com |
+| JPM | JPMorgan Chase & Co. | Financial | Banking | www.jpmorganchase.com |
+| KO | The Coca-Cola Company | Consumer Staples | Beverages | www.coca-colacompany.com |
+| MCD | McDonald's Corporation | Consumer Cyclical | Restaurants | www.mcdonalds.com |
+| MMM | 3M Company | Industrials | Diversified Industrials | www.3m.com |
+| MRK | Merck & Co. Inc. | Healthcare | Pharmaceuticals | www.merck.com |
+| MSFT | Microsoft Corporation | Technology | Software & Cloud | www.microsoft.com |
+| NKE | Nike Inc. | Consumer Cyclical | Apparel & Footwear | www.nike.com |
+| NVDA | NVIDIA Corporation | Technology | Semiconductors & AI | www.nvidia.com |
+| PG | Procter & Gamble Company | Consumer Staples | Household Products | www.pg.com |
+| SHW | The Sherwin-Williams Company | Materials | Paints & Coatings | www.sherwin-williams.com |
+| TRV | The Travelers Companies Inc. | Financial | Insurance | www.travelers.com |
+| UNH | UnitedHealth Group Inc. | Healthcare | Health Insurance | www.unitedhealthgroup.com |
+| V | Visa Inc. | Financial | Payment Processing | www.visa.com |
+| VZ | Verizon Communications Inc. | Communication Services | Telecommunications | www.verizon.com |
+| WMT | Walmart Inc. | Consumer Staples | Retail | www.walmart.com |
+
