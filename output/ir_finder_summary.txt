@@ -2,8 +2,8 @@
 INVESTOR RELATIONS PAGE FINDER - SUMMARY REPORT
 ============================================================
 
-Session Start: 2025-10-10T02:17:44.193732
-Session End: 2025-10-10T02:23:19.995308
+Session Start: 2025-10-10T13:44:17.422490
+Session End: 2025-10-10T13:50:43.347225
 Dow 30 List Updated: November 8, 2024
 
 Total Companies: 30
@@ -13,8 +13,8 @@ Success Rate: 30/30 (100.0%)
 
 STRATEGIES USED:
 ----------------------------------------
-subdomain_pattern: 29
-link_navigation: 1
+subdomain_pattern: 28
+link_navigation: 2
 
 SUCCESSFUL COMPANIES:
 ----------------------------------------
@@ -55,7 +55,7 @@ HD: https://ir.homedepot.com/
   Strategy: subdomain_pattern
   Score: 80
 HON: https://investor.honeywell.com/
-  Strategy: subdomain_pattern
+  Strategy: link_navigation
   Score: 90
 IBM: https://www.ibm.com/investor
   Strategy: subdomain_pattern
@@ -104,7 +104,7 @@ V: https://investor.visa.com/
   Score: 100
 VZ: https://www.verizon.com/about/investors
   Strategy: subdomain_pattern
-  Score: 95
+  Score: 35
 WMT: https://stock.walmart.com/
   Strategy: subdomain_pattern
   Score: 75

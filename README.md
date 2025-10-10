@@ -1,5 +1,13 @@
 # Dow 30 Earnings Pipeline - Setup & Run Instructions
 
+A Short Reflection on our project
+
+https://docs.google.com/document/d/1UVFqRVt933GgO8byZSwh3C2L7rw7a6rs8Pdzu08OguQ/edit?tab=t.0#heading=h.gi8bntcs5c5h
+
+10 min Video Demo
+
+https://northeastern-my.sharepoint.com/:v:/g/personal/gandhi_di_northeastern_edu/EeGy73bIe5dNt5lRXclX2MUBhGql5XYF32kPyeGhBkUJJw?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=du1RAB
+
 ## Prerequisites
 
 ### Required Software
