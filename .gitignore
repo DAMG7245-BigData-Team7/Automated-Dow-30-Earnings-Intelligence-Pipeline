@@ -1,1 +1,11 @@
-/downloads
+**/*downloads*/
+**/*venv*/
+parsed/
+__pycache__/
+*.pyc
+.DS_Store
+.idea/
+.vscode/
+*.log
+.env
+data

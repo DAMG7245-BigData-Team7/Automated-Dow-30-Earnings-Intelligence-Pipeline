@@ -1,29 +1,41 @@
-# Core Web Scraping
+# --- Core Web Scraping ---
 selenium>=4.15.0
-webdriver-manager==4.0.1  # Auto-manages ChromeDriver
+webdriver-manager==4.0.1
 requests>=2.31.0
-beautifulsoup4==4.12.2
-lxml>=4.9.3  # Parser for BeautifulSoup
+beautifulsoup4>=4.12.3
+lxml>=4.9.3
+html5lib>=1.1
 
-# Document Processing
-PyPDF2==3.0.1  # PDF parsing
-openpyxl==3.1.2  # Excel file handling
-pandas==2.2.0  # Data manipulation
+# --- Document Processing ---
+PyPDF2==3.0.1
+pdfplumber>=0.10.0
+PyMuPDF>=1.23.0
+openpyxl>=3.1.5
 
-# AWS Integration
-boto3>=1.29.7  # AWS S3 uploads
-botocore>=1.32.7  # AWS core
+# --- Data stack (keep numpy<2 with pandas 2.2.x) ---
+numpy==1.26.4
+pandas==2.2.2
 
-# Airflow (optional - comment out if not using Airflow)
-# apache-airflow==2.7.3
-# apache-airflow-providers-amazon==8.9.0
+# --- Docling & OCR ---
+docling==2.55.1
+rapidocr-onnxruntime==1.2.3
+onnxruntime>=1.16.0
+pillow>=10.0.0
+opencv-python>=4.8.0
 
-# Utilities
-python-dotenv==1.0.0  # Environment variables
-urllib3==2.1.0  # URL handling
+# --- AWS Integration ---
+boto3>=1.29.7
+botocore>=1.32.7
 
-# Development/Testing (optional)
+# --- Database (RDS PostgreSQL) ---
+psycopg2-binary>=2.9.9
+python-dotenv>=1.0.0
+
+# --- Utilities ---
+urllib3==2.1.0
+
+# --- Dev / Test ---
 pytest==7.4.3
 pytest-timeout==2.2.0
-black==23.11.0  # Code formatting
-flake8==6.1.0  # Linting
+black==23.11.0
+flake8==6.1.0
