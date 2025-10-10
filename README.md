@@ -1,5 +1,11 @@
 # Dow 30 Earnings Pipeline - Setup & Run Instructions
 
+A Short Reflection on our project
+
+https://docs.google.com/document/d/1UVFqRVt933GgO8byZSwh3C2L7rw7a6rs8Pdzu08OguQ/edit?tab=t.0#heading=h.gi8bntcs5c5h
+
+
+
 ## Prerequisites
 
 ### Required Software
