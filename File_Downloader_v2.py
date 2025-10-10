@@ -90,14 +90,17 @@ def text_is_quarterly(s: str) -> bool:
     return any(k in t for k in QUARTER_CUES) or any(k in t for k in SEC_10Q_TERMS)
 
 class AggressiveQuarterlyDownloaderV3:
-    def __init__(self, outdir="quarterly_reports", per_company=2):
+    def __init__(self, outdir="data/raw", per_company=2):
         self.outdir = safe_dir(outdir)
         self.logdir = safe_dir(os.path.join(self.outdir, "_logs"))
         self.per_company = per_company
+        # Create unique session identifier to avoid conflicts
+        import uuid
+        self.session_id = str(uuid.uuid4())[:8]
         self.session = requests.Session()
         self.session.headers.update({"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
         self.driver = self._setup_selenium()
-        self.stats = {"processed":0,"successful":0,"failed":[], "total_files":0}
+        self.stats = {"processed":0,"successful":0,"failed":[], "total_files":0, "session_id":self.session_id}
 
         # Minimal IR overrides (expand if your CSV lacks IR URLs)
         self.ir_overrides = {
@@ -123,11 +126,33 @@ class AggressiveQuarterlyDownloaderV3:
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+
+        # Create unique user data directory for this session to avoid conflicts
+        import tempfile
+        user_data_dir = tempfile.mkdtemp(prefix=f"chrome_session_{self.session_id}_")
+        options.add_argument(f"--user-data-dir={user_data_dir}")
+
+        # Additional isolation arguments
+        options.add_argument("--disable-web-security")
+        options.add_argument("--disable-features=VizDisplayCompositor")
+        options.add_argument(f"--remote-debugging-port=0")  # Let Chrome pick a random port
+
         prefs={"profile.default_content_setting_values.images":2,"download.prompt_for_download":False}
         options.add_experimental_option("prefs", prefs)
-        driver = webdriver.Chrome(options=options)
-        driver.set_page_load_timeout(40)
-        return driver
+
+        # Retry logic for driver creation
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                driver = webdriver.Chrome(options=options)
+                driver.set_page_load_timeout(40)
+                print(f"Chrome driver initialized successfully for session {self.session_id} (attempt {attempt + 1})")
+                return driver
+            except Exception as e:
+                print(f"Failed to initialize Chrome driver (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt == max_retries - 1:
+                    raise
+                time.sleep(2)  # Wait before retry
 
     def _accept_cookies(self):
         XPATHS = [
@@ -382,9 +407,22 @@ class AggressiveQuarterlyDownloaderV3:
 
     def close(self):
         try:
-            self.driver.quit()
-        except Exception:
-            pass
+            if self.driver:
+                self.driver.quit()
+                print(f"Chrome driver closed for session {self.session_id}")
+        except Exception as e:
+            print(f"Error closing driver for session {self.session_id}: {e}")
+
+        # Clean up temporary Chrome user data directory
+        try:
+            import shutil
+            import glob
+            temp_dirs = glob.glob(f"/tmp/chrome_session_{self.session_id}_*")
+            for temp_dir in temp_dirs:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                print(f"Cleaned up temp directory: {temp_dir}")
+        except Exception as e:
+            print(f"Error cleaning up temp directories for session {self.session_id}: {e}")
 
 def main():
     import argparse
@@ -392,7 +430,7 @@ def main():
     parser = argparse.ArgumentParser(description="Download quarterly reports from IR pages")
     parser.add_argument("--json", default="output/ir_finder_results.json",
                        help="Path to JSON file with IR page data")
-    parser.add_argument("--output", default="quarterly_reports",
+    parser.add_argument("--output", default="data/raw",
                        help="Output directory for downloads")
     parser.add_argument("--companies", nargs="+",
                        help="Specific company tickers to process (default: all)")

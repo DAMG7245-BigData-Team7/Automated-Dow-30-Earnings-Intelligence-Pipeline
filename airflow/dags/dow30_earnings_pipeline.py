@@ -48,7 +48,7 @@ file_downloader_task = BashOperator(
 
 docling_parser_task = BashOperator(
     task_id='docling_parser',
-    bash_command=f'cd "{project_root}" && python3 docling_parser.py --downloads data/downloads --output data/Parsed',
+    bash_command=f'cd "{project_root}" && python3 docling_parser.py --downloads data/raw --output data/parsed',
     dag=dag,
 )
 

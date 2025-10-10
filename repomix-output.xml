@@ -80,9 +80,7 @@ This section contains the contents of the repository's files.
 <file path="airflow/dags/dow30_earnings_pipeline.py">
 from datetime import datetime, timedelta
 from airflow import DAG
-from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.standard.operators.bash import BashOperator
-import pandas as pd
 import os
 
 default_args = {
@@ -95,75 +93,6 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-def extract_earnings_data():
-    """Extract earnings data for DOW 30 companies"""
-    print("Starting earnings data extraction...")
-
-    # Sample DOW 30 companies
-    dow30_symbols = [
-        'AAPL', 'MSFT', 'JPM', 'V', 'JNJ', 'WMT', 'PG', 'UNH', 'HD', 'DIS',
-        'MA', 'PFE', 'BAC', 'XOM', 'VZ', 'ADBE', 'KO', 'PEP', 'CMCSA', 'NFLX'
-    ]
-
-    # Create sample earnings data
-    earnings_data = []
-    for symbol in dow30_symbols:
-        earnings_data.append({
-            'symbol': symbol,
-            'quarter': 'Q3 2025',
-            'revenue': f"${(50 + hash(symbol) % 200):.1f}B",
-            'eps': f"${(hash(symbol) % 10 + 1):.2f}",
-            'extracted_at': datetime.now().isoformat()
-        })
-
-    # Save to CSV
-    df = pd.DataFrame(earnings_data)
-    output_path = '/tmp/dow30_earnings_raw.csv'
-    df.to_csv(output_path, index=False)
-    print(f"Extracted {len(earnings_data)} earnings records to {output_path}")
-    return output_path
-
-def transform_earnings_data():
-    """Transform and clean the earnings data"""
-    print("Starting data transformation...")
-
-    # Read raw data
-    raw_data = pd.read_csv('/tmp/dow30_earnings_raw.csv')
-
-    # Add transformation logic
-    transformed_data = raw_data.copy()
-    transformed_data['revenue_billions'] = transformed_data['revenue'].str.replace('$', '').str.replace('B', '').astype(float)
-    transformed_data['eps_numeric'] = transformed_data['eps'].str.replace('$', '').astype(float)
-    transformed_data['market_cap_category'] = transformed_data['revenue_billions'].apply(
-        lambda x: 'Large' if x > 100 else 'Medium' if x > 50 else 'Small'
-    )
-
-    # Save transformed data
-    output_path = '/tmp/dow30_earnings_transformed.csv'
-    transformed_data.to_csv(output_path, index=False)
-    print(f"Transformed data saved to {output_path}")
-    return output_path
-
-def load_earnings_data():
-    """Load the transformed data to final destination"""
-    print("Starting data loading...")
-
-    # Read transformed data
-    final_data = pd.read_csv('/tmp/dow30_earnings_transformed.csv')
-
-    # Create final output directory
-    final_output_dir = '/tmp/airflow_output'
-    os.makedirs(final_output_dir, exist_ok=True)
-
-    # Save final data with timestamp
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    final_path = f"{final_output_dir}/dow30_earnings_final_{timestamp}.csv"
-    final_data.to_csv(final_path, index=False)
-
-    print(f"Final data loaded to {final_path}")
-    print(f"Total records processed: {len(final_data)}")
-    return final_path
-
 # Define the DAG
 dag = DAG(
     'dow30_earnings_pipeline',
@@ -171,42 +100,46 @@ dag = DAG(
     description='DOW 30 Earnings Intelligence Pipeline',
     schedule=timedelta(days=1),
     catchup=False,
-    tags=['dow30', 'earnings', 'etl'],
+    tags=['dow30', 'earnings', 'intelligence'],
 )
+
+# Get the directory containing the DAG file
+dag_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(dag_dir))
 
 # Define tasks
 start_task = BashOperator(
     task_id='start_pipeline',
-    bash_command='echo "Starting DOW 30 Earnings Pipeline..."',
+    bash_command='echo "Starting DOW 30 Earnings Intelligence Pipeline..."',
     dag=dag,
 )
 
-extract_task = PythonOperator(
-    task_id='extract_earnings_data',
-    python_callable=extract_earnings_data,
+ir_extractor_task = BashOperator(
+    task_id='ir_extractor',
+    bash_command=f'cd "{project_root}" && python3 IR_extractor.py',
     dag=dag,
 )
 
-transform_task = PythonOperator(
-    task_id='transform_earnings_data',
-    python_callable=transform_earnings_data,
+file_downloader_task = BashOperator(
+    task_id='file_downloader',
+    bash_command=f'cd "{project_root}" && python3 File_Downloader_v2.py',
     dag=dag,
 )
 
-load_task = PythonOperator(
-    task_id='load_earnings_data',
-    python_callable=load_earnings_data,
+docling_parser_task = BashOperator(
+    task_id='docling_parser',
+    bash_command=f'cd "{project_root}" && python3 docling_parser.py --downloads data/downloads --output data/Parsed',
     dag=dag,
 )
 
 end_task = BashOperator(
     task_id='end_pipeline',
-    bash_command='echo "DOW 30 Earnings Pipeline completed successfully!"',
+    bash_command='echo "DOW 30 Earnings Intelligence Pipeline completed successfully!"',
     dag=dag,
 )
 
 # Define task dependencies
-start_task >> extract_task >> transform_task >> load_task >> end_task
+start_task >> ir_extractor_task >> file_downloader_task >> docling_parser_task >> end_task
 </file>
 
 <file path="airflow/simple_auth_manager_passwords.json.generated">
@@ -214,243 +147,26 @@ start_task >> extract_task >> transform_task >> load_task >> end_task
 </file>
 
 <file path="docling_parser.py">
-# #!/usr/bin/env python3
-# """
-# Task 4 — Docling PDF Parser (Docker / AAPL only)
-# -------------------------------------------------
-# Processes only the PDFs under data/raw/AAPL/
-# and stores parsed outputs under data/parsed/AAPL/
-
-# Usage (inside container):
-#   docker compose run task_4_parse_unstructured
-# """
-
-# from __future__ import annotations
-# import argparse
-# import concurrent.futures
-# import json
-# import logging
-# import platform
-# import sys
-# import time
-# from pathlib import Path
-# from typing import List
-# import numpy as np
-# from pdf2image import convert_from_path
-# from rapidocr_onnxruntime import RapidOCR
-# from docling.datamodel.base_models import InputFormat
-# from docling.datamodel.pipeline_options import PdfPipelineOptions
-# from docling.document_converter import DocumentConverter, PdfFormatOption
-# from docling_core.types.doc import PictureItem, TableItem
-
-# # -------------------------------------------------------------------
-# # Paths (consistent with other steps)
-# # -------------------------------------------------------------------
-# RAW_DIR = Path("data/raw/AAPL")
-# PARSED_DIR = Path("data/parsed/AAPL")
-# LOG_DIR = PARSED_DIR / "logs"
-
-
-# def get_poppler_path():
-#     if platform.system() == "Windows":
-#         for c in [
-#             r"C:\poppler-25.07.0\Library\bin",
-#             r"C:\Program Files\poppler\bin",
-#             r"C:\Program Files (x86)\poppler\bin",
-#         ]:
-#             if Path(c).exists():
-#                 return c
-#     return None
-
-
-# def setup_logger(name: str, logdir: Path):
-#     logdir.mkdir(parents=True, exist_ok=True)
-#     logger = logging.getLogger(name)
-#     logger.setLevel(logging.INFO)
-#     for h in list(logger.handlers):
-#         logger.removeHandler(h)
-#     fmt = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-#     sh = logging.StreamHandler(sys.stdout)
-#     sh.setFormatter(fmt)
-#     fh = logging.FileHandler(logdir / f"{name}.log", encoding="utf-8")
-#     fh.setFormatter(fmt)
-#     logger.addHandler(sh)
-#     logger.addHandler(fh)
-#     return logger
-
-
-# def process_pdf(pdf_path: Path):
-#     """Parse one PDF via Docling (with OCR fallback)."""
-#     log = setup_logger(pdf_path.stem, LOG_DIR)
-#     start = time.time()
-#     try:
-#         # Docling setup
-#         opts = PdfPipelineOptions(
-#             force_ocr=False,
-#             ocr_engine="none",
-#             images_scale=2.0,
-#             generate_picture_images=True,
-#             generate_page_images=False,
-#         )
-#         converter = DocumentConverter(
-#             format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=opts)}
-#         )
-
-#         log.info(f"Processing {pdf_path} ...")
-#         conv = converter.convert(pdf_path)
-#         doc = conv.document
-
-#         # Subdirs per doc
-#         base = PARSED_DIR
-#         dirs = {
-#             "images": base / "images" / pdf_path.stem,
-#             "tables": base / "tables" / pdf_path.stem,
-#             "text": base / "text" / pdf_path.stem,
-#             "json": base / "json" / pdf_path.stem,
-#             "markdown": base / "markdown" / pdf_path.stem,
-#         }
-#         for d in dirs.values():
-#             d.mkdir(parents=True, exist_ok=True)
-
-#         # JSON
-#         (dirs["json"] / f"{pdf_path.stem}.json").write_text(
-#             json.dumps(doc.model_dump(mode="json"), indent=2, ensure_ascii=False),
-#             encoding="utf-8",
-#         )
-
-#         # Markdown
-#         (dirs["markdown"] / f"{pdf_path.stem}.md").write_text(
-#             doc.export_to_markdown(), encoding="utf-8"
-#         )
-
-#         # Text
-#         text_blocks = []
-#         for p in doc.pages.values():
-#             for b in getattr(p, "blocks", []):
-#                 if hasattr(b, "text") and b.text:
-#                     text_blocks.append(b.text)
-#         (dirs["text"] / f"{pdf_path.stem}.txt").write_text(
-#             "\n\n".join(text_blocks), encoding="utf-8"
-#         )
-
-#         # Images
-#         pic_count = 0
-#         for el, _ in doc.iterate_items():
-#             if isinstance(el, PictureItem):
-#                 try:
-#                     img = el.get_image(doc)
-#                     outp = dirs["images"] / f"{pdf_path.stem}-img-{pic_count+1:03}.png"
-#                     img.save(outp, "PNG")
-#                     pic_count += 1
-#                 except Exception as e:
-#                     log.warning(f"Image save failed: {e}")
-#         log.info(f"Extracted {pic_count} images")
-
-#         # Tables
-#         tbl_count = 0
-#         for el, _ in doc.iterate_items():
-#             if isinstance(el, TableItem):
-#                 try:
-#                     df = el.export_to_dataframe(doc=doc)
-#                     df.to_csv(
-#                         dirs["tables"] / f"{pdf_path.stem}-table-{tbl_count+1:03}.csv",
-#                         index=False,
-#                     )
-#                     tbl_count += 1
-#                 except Exception as e:
-#                     log.warning(f"Table save failed: {e}")
-#         log.info(f"Extracted {tbl_count} tables")
-
-#         # OCR fallback
-#         poppler = get_poppler_path()
-#         ocr = RapidOCR()
-#         imgs = convert_from_path(str(pdf_path), dpi=300, poppler_path=poppler)
-#         for page in doc.pages.values():
-#             pno = page.page_no
-#             txt = "\n".join(
-#                 b.text for b in getattr(page, "blocks", []) if hasattr(b, "text")
-#             )
-#             if not txt.strip():
-#                 np_img = np.array(imgs[pno - 1])
-#                 res, _ = ocr(np_img)
-#                 ocr_text = "\n".join(r[1] for r in res)
-#                 (dirs["text"] / f"{pdf_path.stem}-page-{pno:03}.txt").write_text(
-#                     ocr_text, encoding="utf-8"
-#                 )
-
-#         log.info(f"✅ Done {pdf_path.name} in {time.time()-start:.1f}s")
-#         return {"pdf": str(pdf_path), "status": "ok"}
-#     except Exception as e:
-#         log.exception(f"❌ Error processing {pdf_path}: {e}")
-#         return {"pdf": str(pdf_path), "status": "error", "error": str(e)}
-
-
-# def collect_pdfs(indir: Path) -> List[Path]:
-#     return sorted(indir.rglob("*.pdf"))
-
-
-# def main(concurrency=3):
-#     PARSED_DIR.mkdir(parents=True, exist_ok=True)
-#     pdfs = collect_pdfs(RAW_DIR)
-#     if not pdfs:
-#         print(f"No PDFs found in {RAW_DIR}")
-#         sys.exit(0)
-
-#     print(f"Found {len(pdfs)} PDFs under {RAW_DIR} → saving to {PARSED_DIR}")
-#     start = time.time()
-#     results = []
-#     with concurrent.futures.ProcessPoolExecutor(max_workers=concurrency) as ex:
-#         futs = {ex.submit(process_pdf, f): f for f in pdfs}
-#         for fut in concurrent.futures.as_completed(futs):
-#             f = futs[fut]
-#             try:
-#                 r = fut.result()
-#                 print(f"[DONE] {f.name} → {r['status']}")
-#                 results.append(r)
-#             except Exception as e:
-#                 print(f"[ERROR] {f.name}: {e}")
-#                 results.append({"pdf": str(f), "status": "error", "error": str(e)})
-
-#     summary = {
-#         "total": len(pdfs),
-#         "elapsed_s": time.time() - start,
-#         "results": results,
-#     }
-#     (PARSED_DIR / "run_summary.json").write_text(json.dumps(summary, indent=2))
-#     print("All done. Summary written to", PARSED_DIR / "run_summary.json")
-
-
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("--concurrency", type=int, default=3)
-#     args = parser.parse_args()
-#     main(args.concurrency)
 #!/usr/bin/env python3
 """
-Task 4 — Docling PDF Parser (CSV-driven)
-----------------------------------------
-Reads pdf_files_reference.csv and parses each PDF listed there.
-
-Expected CSV columns:
-  ticker, folder, file_name
+Task 4 — Docling PDF Parser (Downloads-driven)
+----------------------------------------------
+Finds the smallest PDF/document file from each ticker folder in data/downloads
+and parses it using Docling. Stores parsed output in data/parsed/{ticker}/
 
 Usage:
-  docker compose run task_4_parse_unstructured --csv data/reference/pdf_files_reference.csv
+  python docling_parser.py --downloads data/downloads --output data/parsed
 """
 from __future__ import annotations
 import argparse
 import concurrent.futures
 import json
-import csv  
 import logging
-import platform
+import os
 import sys
 import time
 from pathlib import Path
-from typing import List
-import numpy as np
-from pdf2image import convert_from_path
-from rapidocr_onnxruntime import RapidOCR
+from typing import List, Dict, Optional
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.document_converter import DocumentConverter, PdfFormatOption
@@ -459,9 +175,8 @@ from docling_core.types.doc import PictureItem, TableItem
 # -------------------------------------------------------------------
 # Configuration
 # -------------------------------------------------------------------
-DATA_DIR = Path("data")
-CSV_PATH = DATA_DIR / "reference" / "pdf_files_reference.csv"
-PARSED_DIR = DATA_DIR / "parsed"
+DOWNLOADS_DIR = Path("data/downloads")
+PARSED_DIR = Path("data/parsed")
 LOG_DIR = PARSED_DIR / "logs"
 PARSED_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -469,15 +184,59 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
 )
-log = logging.getLogger("parse_from_csv")
+log = logging.getLogger("parse_downloads")
+
+# Supported document extensions
+DOC_EXTENSIONS = {".pdf", ".ppt", ".pptx"}
 
 
-def parse_pdf(pdf_path: Path, parsed_dir: Path):
-    """Parse one PDF using Docling."""
+def find_smallest_file_per_ticker(downloads_dir: Path) -> Dict[str, Path]:
+    """Find the smallest document file in each ticker folder."""
+    ticker_files = {}
+
+    if not downloads_dir.exists():
+        log.warning(f"Downloads directory not found: {downloads_dir}")
+        return ticker_files
+
+    for ticker_dir in downloads_dir.iterdir():
+        if not ticker_dir.is_dir():
+            continue
+
+        ticker = ticker_dir.name
+        smallest_file = None
+        smallest_size = float('inf')
+
+        # Find all document files in ticker folder
+        for file_path in ticker_dir.iterdir():
+            if file_path.is_file() and file_path.suffix.lower() in DOC_EXTENSIONS:
+                try:
+                    file_size = file_path.stat().st_size
+                    if file_size < smallest_size:
+                        smallest_size = file_size
+                        smallest_file = file_path
+                except OSError as e:
+                    log.warning(f"Could not get size for {file_path}: {e}")
+
+        if smallest_file:
+            ticker_files[ticker] = smallest_file
+            log.info(f"Selected for {ticker}: {smallest_file.name} ({smallest_size:,} bytes)")
+        else:
+            log.warning(f"No document files found in {ticker_dir}")
+
+    return ticker_files
+
+
+def parse_document(file_path: Path, ticker: str, parsed_dir: Path):
+    """Parse one document using Docling."""
     try:
+        # Only process PDF files with Docling (skip PPT/PPTX for now)
+        if file_path.suffix.lower() != '.pdf':
+            log.info(f"Skipping non-PDF file: {file_path.name}")
+            return {"file": str(file_path), "ticker": ticker, "status": "skipped", "reason": "non-pdf"}
+
         opts = PdfPipelineOptions(
             force_ocr=False,
-            ocr_engine=None,  # 🚫 disable EasyOCR
+            ocr_engine=None,
             generate_picture_images=True,
             generate_page_images=False,
         )
@@ -485,12 +244,12 @@ def parse_pdf(pdf_path: Path, parsed_dir: Path):
             format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=opts)}
         )
 
-        log.info(f"Processing {pdf_path} ...")
-        conv = converter.convert(pdf_path)
+        log.info(f"Processing {ticker}: {file_path.name} ...")
+        conv = converter.convert(file_path)
         doc = conv.document
 
-        # Output folders
-        base = parsed_dir / pdf_path.parent.name
+        # Output folders for this ticker
+        base = parsed_dir / ticker
         (base / "text").mkdir(parents=True, exist_ok=True)
         (base / "json").mkdir(parents=True, exist_ok=True)
         (base / "markdown").mkdir(parents=True, exist_ok=True)
@@ -498,13 +257,13 @@ def parse_pdf(pdf_path: Path, parsed_dir: Path):
         (base / "images").mkdir(parents=True, exist_ok=True)
 
         # Save JSON
-        (base / "json" / f"{pdf_path.stem}.json").write_text(
+        (base / "json" / f"{file_path.stem}.json").write_text(
             json.dumps(doc.model_dump(mode="json"), indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
 
         # Save Markdown
-        (base / "markdown" / f"{pdf_path.stem}.md").write_text(
+        (base / "markdown" / f"{file_path.stem}.md").write_text(
             doc.export_to_markdown(), encoding="utf-8"
         )
 
@@ -514,85 +273,442 @@ def parse_pdf(pdf_path: Path, parsed_dir: Path):
             for b in getattr(p, "blocks", []):
                 if hasattr(b, "text") and b.text:
                     text_blocks.append(b.text)
-        (base / "text" / f"{pdf_path.stem}.txt").write_text(
+        (base / "text" / f"{file_path.stem}.txt").write_text(
             "\n\n".join(text_blocks), encoding="utf-8"
         )
 
         # Save tables
+        table_count = 0
         for i, (el, _) in enumerate(doc.iterate_items()):
             if isinstance(el, TableItem):
                 try:
                     df = el.export_to_dataframe(doc=doc)
-                    df.to_csv(base / "tables" / f"{pdf_path.stem}-table-{i+1:03}.csv", index=False)
+                    df.to_csv(base / "tables" / f"{file_path.stem}-table-{i+1:03}.csv", index=False)
+                    table_count += 1
                 except Exception as e:
                     log.warning(f"Table save failed: {e}")
 
         # Save images
+        image_count = 0
         for i, (el, _) in enumerate(doc.iterate_items()):
             if isinstance(el, PictureItem):
                 try:
                     img = el.get_image(doc)
-                    img.save(base / "images" / f"{pdf_path.stem}-img-{i+1:03}.png", "PNG")
+                    img.save(base / "images" / f"{file_path.stem}-img-{i+1:03}.png", "PNG")
+                    image_count += 1
                 except Exception as e:
                     log.warning(f"Image save failed: {e}")
 
-        log.info(f"✅ Done {pdf_path.name}")
-        return {"pdf": str(pdf_path), "status": "ok"}
+        log.info(f"✅ Done {ticker}: {file_path.name} ({table_count} tables, {image_count} images)")
+        return {
+            "file": str(file_path),
+            "ticker": ticker,
+            "status": "ok",
+            "tables_extracted": table_count,
+            "images_extracted": image_count
+        }
 
     except Exception as e:
-        log.error(f"❌ Failed {pdf_path}: {e}")
-        return {"pdf": str(pdf_path), "status": "error", "error": str(e)}
+        log.error(f"❌ Failed {ticker}: {file_path.name} - {e}")
+        return {"file": str(file_path), "ticker": ticker, "status": "error", "error": str(e)}
 
 
-def main(csv_path: Path, concurrency: int = 3):
-    if not csv_path.exists():
-        log.error(f"CSV not found: {csv_path}")
+def main(downloads_dir: Path, parsed_dir: Path, concurrency: int = 3):
+    """Main function to process smallest files from each ticker folder."""
+    log.info(f"Looking for files in: {downloads_dir}")
+    log.info(f"Output directory: {parsed_dir}")
+
+    # Find smallest file per ticker
+    ticker_files = find_smallest_file_per_ticker(downloads_dir)
+
+    if not ticker_files:
+        log.error("No files found to process")
         sys.exit(1)
 
-    rows = []
-    with open(csv_path, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            pdf_path = Path(row["folder"]) / row["file_name"]
-            if pdf_path.exists():
-                rows.append(pdf_path)
-            else:
-                log.warning(f"Missing: {pdf_path}")
-
-    log.info(f"Found {len(rows)} PDFs from {csv_path}")
+    log.info(f"Found {len(ticker_files)} tickers to process")
     start = time.time()
     results = []
 
+    # Process files with concurrent execution
     with concurrent.futures.ProcessPoolExecutor(max_workers=concurrency) as ex:
-        futures = {ex.submit(parse_pdf, path, PARSED_DIR): path for path in rows}
+        futures = {
+            ex.submit(parse_document, file_path, ticker, parsed_dir): (ticker, file_path)
+            for ticker, file_path in ticker_files.items()
+        }
+
         for fut in concurrent.futures.as_completed(futures):
-            f = futures[fut]
+            ticker, file_path = futures[fut]
             try:
-                r = fut.result()
-                results.append(r)
+                result = fut.result()
+                results.append(result)
+                if result["status"] == "ok":
+                    log.info(f"✅ Completed {ticker}")
+                elif result["status"] == "skipped":
+                    log.info(f"⏭️ Skipped {ticker}: {result.get('reason', 'unknown')}")
+                else:
+                    log.error(f"❌ Failed {ticker}: {result.get('error', 'unknown error')}")
             except Exception as e:
-                results.append({"pdf": str(f), "status": "error", "error": str(e)})
+                log.error(f"❌ Unexpected error processing {ticker}: {e}")
+                results.append({
+                    "file": str(file_path),
+                    "ticker": ticker,
+                    "status": "error",
+                    "error": str(e)
+                })
+
+    # Generate summary
+    elapsed = time.time() - start
+    successful = sum(1 for r in results if r["status"] == "ok")
+    skipped = sum(1 for r in results if r["status"] == "skipped")
+    failed = sum(1 for r in results if r["status"] == "error")
 
     summary = {
-        "total": len(rows),
-        "elapsed_s": round(time.time() - start, 2),
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "total_tickers": len(ticker_files),
+        "successful": successful,
+        "skipped": skipped,
+        "failed": failed,
+        "elapsed_seconds": round(elapsed, 2),
         "results": results,
     }
-    (PARSED_DIR / "run_summary.json").write_text(json.dumps(summary, indent=2))
-    log.info("✅ Completed parsing all PDFs.")
+
+    # Save summary
+    summary_file = parsed_dir / "parsing_summary.json"
+    summary_file.write_text(json.dumps(summary, indent=2))
+
+    log.info("=" * 50)
+    log.info("PARSING SUMMARY")
+    log.info("=" * 50)
+    log.info(f"Total tickers: {len(ticker_files)}")
+    log.info(f"Successful: {successful}")
+    log.info(f"Skipped: {skipped}")
+    log.info(f"Failed: {failed}")
+    log.info(f"Processing time: {elapsed:.1f} seconds")
+    log.info(f"Summary saved to: {summary_file}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--csv", type=str, default=str(CSV_PATH))
-    parser.add_argument("--concurrency", type=int, default=3)
+    parser = argparse.ArgumentParser(description="Parse smallest document from each ticker folder")
+    parser.add_argument("--downloads", type=str, default="data/downloads",
+                       help="Downloads directory containing ticker folders")
+    parser.add_argument("--output", type=str, default="data/parsed",
+                       help="Output directory for parsed content")
+    parser.add_argument("--concurrency", type=int, default=3,
+                       help="Number of concurrent processes")
+
     args = parser.parse_args()
-    main(Path(args.csv), args.concurrency)
+
+    downloads_path = Path(args.downloads)
+    output_path = Path(args.output)
+
+    main(downloads_path, output_path, args.concurrency)
+</file>
+
+<file path="README.md">
+# Automated-Dow-30-Earnings-Intelligence-Pipeline
+</file>
+
+<file path="requirements.txt">
+# Core Web Scraping
+selenium>=4.15.0
+webdriver-manager==4.0.1  # Auto-manages ChromeDriver
+requests>=2.31.0
+beautifulsoup4==4.12.2
+lxml>=4.9.3  # Parser for BeautifulSoup
+
+# Document Processing
+PyPDF2==3.0.1  # PDF parsing
+openpyxl==3.1.2  # Excel file handling
+pandas==2.2.0  # Data manipulation
+
+# AWS Integration
+boto3>=1.29.7  # AWS S3 uploads
+botocore>=1.32.7  # AWS core
+
+# Airflow (optional - comment out if not using Airflow)
+# apache-airflow==2.7.3
+# apache-airflow-providers-amazon==8.9.0
+
+# Utilities
+python-dotenv==1.0.0  # Environment variables
+urllib3==2.1.0  # URL handling
+
+# Development/Testing (optional)
+pytest==7.4.3
+pytest-timeout==2.2.0
+black==23.11.0  # Code formatting
+flake8==6.1.0  # Linting
+</file>
+
+<file path="s3_uploader.py">
+import os
+import boto3
+import logging
+from botocore.exceptions import ClientError, NoCredentialsError
+from pathlib import Path
+from typing import Optional, List
+import mimetypes
+from datetime import datetime
+
+class S3Uploader:
+    def __init__(self, bucket_name: str, aws_access_key_id: Optional[str] = None,
+                 aws_secret_access_key: Optional[str] = None, region_name: str = 'us-east-1'):
+        """
+        Initialize S3 uploader
+
+        Args:
+            bucket_name: Name of the S3 bucket
+            aws_access_key_id: AWS access key (optional, can use env vars or IAM roles)
+            aws_secret_access_key: AWS secret key (optional, can use env vars or IAM roles)
+            region_name: AWS region name
+        """
+        self.bucket_name = bucket_name
+        self.region_name = region_name
+
+        # Setup logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
+        self.logger = logging.getLogger(__name__)
+
+        # Initialize S3 client
+        try:
+            if aws_access_key_id and aws_secret_access_key:
+                self.s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id=aws_access_key_id,
+                    aws_secret_access_key=aws_secret_access_key,
+                    region_name=region_name
+                )
+            else:
+                # Use default credentials (env vars, IAM roles, or AWS CLI config)
+                self.s3_client = boto3.client('s3', region_name=region_name)
+
+            self.logger.info(f"S3 client initialized for bucket: {bucket_name}")
+
+        except Exception as e:
+            self.logger.error(f"Failed to initialize S3 client: {e}")
+            raise
+
+    def upload_file(self, local_file_path: str, s3_key: Optional[str] = None) -> bool:
+        """
+        Upload a single file to S3
+
+        Args:
+            local_file_path: Path to the local file
+            s3_key: S3 object key (path in bucket). If None, uses filename
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Convert to Path object for easier manipulation
+            file_path = Path(local_file_path)
+
+            if not file_path.exists():
+                self.logger.error(f"File not found: {local_file_path}")
+                return False
+
+            # Generate S3 key if not provided
+            if s3_key is None:
+                s3_key = file_path.name
+
+            # Get file content type
+            content_type, _ = mimetypes.guess_type(local_file_path)
+            if content_type is None:
+                content_type = 'binary/octet-stream'
+
+            # Upload file
+            extra_args = {'ContentType': content_type}
+
+            self.s3_client.upload_file(
+                str(file_path),
+                self.bucket_name,
+                s3_key,
+                ExtraArgs=extra_args
+            )
+
+            self.logger.info(f"Successfully uploaded: {local_file_path} -> s3://{self.bucket_name}/{s3_key}")
+            return True
+
+        except FileNotFoundError:
+            self.logger.error(f"File not found: {local_file_path}")
+            return False
+        except NoCredentialsError:
+            self.logger.error("AWS credentials not found")
+            return False
+        except ClientError as e:
+            self.logger.error(f"AWS error uploading {local_file_path}: {e}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Unexpected error uploading {local_file_path}: {e}")
+            return False
+
+    def upload_directory(self, local_directory: str, s3_prefix: str = "",
+                        preserve_structure: bool = True) -> dict:
+        """
+        Upload all files in a directory to S3
+
+        Args:
+            local_directory: Path to the local directory
+            s3_prefix: Prefix to add to S3 keys (like a folder path)
+            preserve_structure: Whether to preserve directory structure in S3
+
+        Returns:
+            dict: Summary of upload results
+        """
+        results = {
+            'total_files': 0,
+            'successful_uploads': 0,
+            'failed_uploads': 0,
+            'uploaded_files': [],
+            'failed_files': []
+        }
+
+        try:
+            directory_path = Path(local_directory)
+
+            if not directory_path.exists():
+                self.logger.error(f"Directory not found: {local_directory}")
+                return results
+
+            if not directory_path.is_dir():
+                self.logger.error(f"Path is not a directory: {local_directory}")
+                return results
+
+            # Get all files recursively
+            all_files = []
+            for file_path in directory_path.rglob('*'):
+                if file_path.is_file():
+                    all_files.append(file_path)
+
+            results['total_files'] = len(all_files)
+            self.logger.info(f"Found {len(all_files)} files to upload from {local_directory}")
+
+            for file_path in all_files:
+                if preserve_structure:
+                    # Maintain directory structure
+                    relative_path = file_path.relative_to(directory_path)
+                    s3_key = f"{s3_prefix}/{relative_path}" if s3_prefix else str(relative_path)
+                else:
+                    # Flat structure - just filename
+                    s3_key = f"{s3_prefix}/{file_path.name}" if s3_prefix else file_path.name
+
+                # Replace backslashes with forward slashes for S3
+                s3_key = s3_key.replace('\\', '/')
+
+                if self.upload_file(str(file_path), s3_key):
+                    results['successful_uploads'] += 1
+                    results['uploaded_files'].append({
+                        'local_path': str(file_path),
+                        's3_key': s3_key,
+                        'size_bytes': file_path.stat().st_size
+                    })
+                else:
+                    results['failed_uploads'] += 1
+                    results['failed_files'].append(str(file_path))
+
+            self.logger.info(f"Upload complete: {results['successful_uploads']}/{results['total_files']} files uploaded successfully")
+
+        except Exception as e:
+            self.logger.error(f"Error uploading directory {local_directory}: {e}")
+
+        return results
+
+    def list_bucket_objects(self, prefix: str = "") -> List[str]:
+        """
+        List objects in the S3 bucket
+
+        Args:
+            prefix: Filter objects by prefix
+
+        Returns:
+            List[str]: List of object keys
+        """
+        try:
+            objects = []
+            paginator = self.s3_client.get_paginator('list_objects_v2')
+
+            for page in paginator.paginate(Bucket=self.bucket_name, Prefix=prefix):
+                if 'Contents' in page:
+                    for obj in page['Contents']:
+                        objects.append(obj['Key'])
+
+            return objects
+
+        except Exception as e:
+            self.logger.error(f"Error listing bucket objects: {e}")
+            return []
+
+
+def main():
+    """
+    Main function to upload files from downloads directory to S3
+    """
+    # Configuration - modify these values as needed
+    BUCKET_NAME = "your-bucket-name"  # Replace with your actual bucket name
+    DOWNLOADS_DIR = "downloads_2025"   # Directory containing files to upload
+    S3_PREFIX = f"dow30-earnings/{datetime.now().strftime('%Y-%m-%d')}"  # S3 folder structure
+
+    # AWS credentials (optional - can use environment variables or IAM roles)
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
+
+    try:
+        # Initialize uploader
+        uploader = S3Uploader(
+            bucket_name=BUCKET_NAME,
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            region_name=AWS_REGION
+        )
+
+        # Upload all files from downloads directory
+        print(f"Starting upload of files from {DOWNLOADS_DIR} to S3 bucket {BUCKET_NAME}")
+        print(f"S3 prefix: {S3_PREFIX}")
+
+        results = uploader.upload_directory(
+            local_directory=DOWNLOADS_DIR,
+            s3_prefix=S3_PREFIX,
+            preserve_structure=True
+        )
+
+        # Print summary
+        print("\n" + "="*50)
+        print("UPLOAD SUMMARY")
+        print("="*50)
+        print(f"Total files found: {results['total_files']}")
+        print(f"Successfully uploaded: {results['successful_uploads']}")
+        print(f"Failed uploads: {results['failed_uploads']}")
+
+        if results['failed_files']:
+            print(f"\nFailed files:")
+            for failed_file in results['failed_files']:
+                print(f"  - {failed_file}")
+
+        # Calculate total size uploaded
+        total_size = sum(file_info['size_bytes'] for file_info in results['uploaded_files'])
+        total_size_mb = total_size / (1024 * 1024)
+        print(f"\nTotal data uploaded: {total_size_mb:.2f} MB")
+
+        print(f"\nAll uploaded files are available at: s3://{BUCKET_NAME}/{S3_PREFIX}/")
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    exit(main())
 </file>
 
 <file path="output/ir_finder_results.json">
 {
-  "start_time": "2025-10-08T23:29:29.282630",
+  "start_time": "2025-10-09T20:13:54.869786",
   "companies_processed": [
     {
       "ticker": "AAPL",
@@ -603,7 +719,7 @@ if __name__ == "__main__":
       "ir_page_title": "Investor Relations - Apple",
       "strategy_used": "subdomain_pattern",
       "verification_score": 110,
-      "timestamp": "2025-10-08T23:29:30.272960",
+      "timestamp": "2025-10-09T20:13:59.463950",
       "error": null
     },
     {
@@ -615,7 +731,7 @@ if __name__ == "__main__":
       "ir_page_title": "Investors | Amgen Inc.",
       "strategy_used": "subdomain_pattern",
       "verification_score": 55,
-      "timestamp": "2025-10-08T23:29:37.325925",
+      "timestamp": "2025-10-09T20:14:05.765850",
       "error": null
     },
     {
@@ -627,7 +743,7 @@ if __name__ == "__main__":
       "ir_page_title": "Amazon.com, Inc. - Overview",
       "strategy_used": "subdomain_pattern",
       "verification_score": 85,
-      "timestamp": "2025-10-08T23:29:42.726861",
+      "timestamp": "2025-10-09T20:14:12.417561",
       "error": null
     },
     {
@@ -639,7 +755,7 @@ if __name__ == "__main__":
       "ir_page_title": "American Express Company - Investor Relations",
       "strategy_used": "subdomain_pattern",
       "verification_score": 125,
-      "timestamp": "2025-10-08T23:29:48.317179",
+      "timestamp": "2025-10-09T20:14:20.944705",
       "error": null
     },
     {
@@ -651,7 +767,7 @@ if __name__ == "__main__":
       "ir_page_title": "Boeing Company - Investors - Overview",
       "strategy_used": "subdomain_pattern",
       "verification_score": 95,
-      "timestamp": "2025-10-08T23:29:54.779869",
+      "timestamp": "2025-10-09T20:14:27.130381",
       "error": null
     },
     {
@@ -663,7 +779,7 @@ if __name__ == "__main__":
       "ir_page_title": "Caterpillar Inc. - Overview",
       "strategy_used": "subdomain_pattern",
       "verification_score": 100,
-      "timestamp": "2025-10-08T23:30:00.253125",
+      "timestamp": "2025-10-09T20:14:32.701172",
       "error": null
     },
     {
@@ -675,7 +791,7 @@ if __name__ == "__main__":
       "ir_page_title": "Salesforce.com, Inc. - Salesforce Investor Relations",
       "strategy_used": "subdomain_pattern",
       "verification_score": 65,
-      "timestamp": "2025-10-08T23:30:06.488816",
+      "timestamp": "2025-10-09T20:14:39.195724",
       "error": null
     },
     {
@@ -687,7 +803,7 @@ if __name__ == "__main__":
       "ir_page_title": "Investor Relations - Overview - Cisco",
       "strategy_used": "subdomain_pattern",
       "verification_score": 125,
-      "timestamp": "2025-10-08T23:30:13.003589",
+      "timestamp": "2025-10-09T20:14:46.167391",
       "error": null
     },
     {
@@ -699,7 +815,7 @@ if __name__ == "__main__":
       "ir_page_title": "Privacy error",
       "strategy_used": "subdomain_pattern",
       "verification_score": 20,
-      "timestamp": "2025-10-08T23:30:19.496967",
+      "timestamp": "2025-10-09T20:14:52.413253",
       "error": null
     },
     {
@@ -711,7 +827,7 @@ if __name__ == "__main__":
       "ir_page_title": "Investor Relations - Stock Information, Events, Reports, Financial Information, Shareholder Information - The Walt Disney Company",
       "strategy_used": "subdomain_pattern",
       "verification_score": 65,
-      "timestamp": "2025-10-08T23:30:25.118569",
+      "timestamp": "2025-10-09T20:14:57.824068",
       "error": null
     },
     {
@@ -723,7 +839,7 @@ if __name__ == "__main__":
       "ir_page_title": "404 | Goldman Sachs",
       "strategy_used": "subdomain_pattern",
       "verification_score": 40,
-      "timestamp": "2025-10-08T23:30:29.812122",
+      "timestamp": "2025-10-09T20:15:02.304997",
       "error": null
     },
     {
@@ -735,7 +851,7 @@ if __name__ == "__main__":
       "ir_page_title": "The Home Depot",
       "strategy_used": "subdomain_pattern",
       "verification_score": 80,
-      "timestamp": "2025-10-08T23:30:36.973670",
+      "timestamp": "2025-10-09T20:15:09.507162",
       "error": null
     },
     {
@@ -745,9 +861,9 @@ if __name__ == "__main__":
       "ir_page_found": true,
       "ir_url": "https://investor.honeywell.com/",
       "ir_page_title": "Investor Relations | Honeywell International Inc.",
-      "strategy_used": "link_navigation",
+      "strategy_used": "subdomain_pattern",
       "verification_score": 90,
-      "timestamp": "2025-10-08T23:30:45.358188",
+      "timestamp": "2025-10-09T20:15:18.967673",
       "error": null
     },
     {
@@ -759,7 +875,7 @@ if __name__ == "__main__":
       "ir_page_title": "Investor Relations | IBM",
       "strategy_used": "subdomain_pattern",
       "verification_score": 80,
-      "timestamp": "2025-10-08T23:33:14.182090",
+      "timestamp": "2025-10-09T20:15:25.481367",
       "error": null
     },
     {
@@ -771,7 +887,7 @@ if __name__ == "__main__":
       "ir_page_title": "Investor Relations | Johnson & Johnson",
       "strategy_used": "subdomain_pattern",
       "verification_score": 90,
-      "timestamp": "2025-10-08T23:33:21.947917",
+      "timestamp": "2025-10-09T20:15:34.691742",
       "error": null
     },
     {
@@ -783,7 +899,7 @@ if __name__ == "__main__":
       "ir_page_title": "Home | JPMorganChase",
       "strategy_used": "subdomain_pattern",
       "verification_score": 35,
-      "timestamp": "2025-10-08T23:33:29.636740",
+      "timestamp": "2025-10-09T20:15:41.915717",
       "error": null
     },
     {
@@ -795,7 +911,7 @@ if __name__ == "__main__":
       "ir_page_title": "The Coca-Cola Company (KO)",
       "strategy_used": "subdomain_pattern",
       "verification_score": 70,
-      "timestamp": "2025-10-08T23:33:35.265084",
+      "timestamp": "2025-10-09T20:15:49.441922",
       "error": null
     },
     {
@@ -807,7 +923,7 @@ if __name__ == "__main__":
       "ir_page_title": "404 Not Found",
       "strategy_used": "subdomain_pattern",
       "verification_score": 20,
-      "timestamp": "2025-10-08T23:33:40.051468",
+      "timestamp": "2025-10-09T20:15:54.319573",
       "error": null
     },
     {
@@ -819,7 +935,7 @@ if __name__ == "__main__":
       "ir_page_title": "3M Company (MMM)",
       "strategy_used": "subdomain_pattern",
       "verification_score": 105,
-      "timestamp": "2025-10-08T23:33:46.592355",
+      "timestamp": "2025-10-09T20:16:00.919320",
       "error": null
     },
     {
@@ -831,7 +947,7 @@ if __name__ == "__main__":
       "ir_page_title": "Investor relations - Merck.com",
       "strategy_used": "subdomain_pattern",
       "verification_score": 100,
-      "timestamp": "2025-10-08T23:33:52.038880",
+      "timestamp": "2025-10-09T20:16:07.850560",
       "error": null
     },
     {
@@ -843,7 +959,7 @@ if __name__ == "__main__":
       "ir_page_title": "Home page",
       "strategy_used": "subdomain_pattern",
       "verification_score": 75,
-      "timestamp": "2025-10-08T23:33:59.862084",
+      "timestamp": "2025-10-09T20:16:15.682782",
       "error": null
     },
     {
@@ -855,7 +971,7 @@ if __name__ == "__main__":
       "ir_page_title": "NIKE, Inc. - Investor Relations - Home",
       "strategy_used": "subdomain_pattern",
       "verification_score": 65,
-      "timestamp": "2025-10-08T23:34:06.812537",
+      "timestamp": "2025-10-09T20:16:22.318513",
       "error": null
     },
     {
@@ -867,7 +983,7 @@ if __name__ == "__main__":
       "ir_page_title": "NVIDIA Corporation - Home",
       "strategy_used": "subdomain_pattern",
       "verification_score": 100,
-      "timestamp": "2025-10-08T23:34:13.057899",
+      "timestamp": "2025-10-09T20:16:28.643311",
       "error": null
     },
     {
@@ -879,7 +995,7 @@ if __name__ == "__main__":
       "ir_page_title": "Investor Relations | Procter & Gamble Investor Relations",
       "strategy_used": "link_navigation",
       "verification_score": 100,
-      "timestamp": "2025-10-08T23:34:19.495300",
+      "timestamp": "2025-10-09T20:16:34.841651",
       "error": null
     },
     {
@@ -891,7 +1007,7 @@ if __name__ == "__main__":
       "ir_page_title": "Sherwin-Williams - Investor Relations",
       "strategy_used": "subdomain_pattern",
       "verification_score": 80,
-      "timestamp": "2025-10-08T23:34:42.197671",
+      "timestamp": "2025-10-09T20:16:57.235735",
       "error": null
     },
     {
@@ -903,7 +1019,7 @@ if __name__ == "__main__":
       "ir_page_title": "Travelers Investor Relations | Home",
       "strategy_used": "subdomain_pattern",
       "verification_score": 110,
-      "timestamp": "2025-10-08T23:34:48.832917",
+      "timestamp": "2025-10-09T20:17:03.881252",
       "error": null
     },
     {
@@ -915,7 +1031,7 @@ if __name__ == "__main__":
       "ir_page_title": "Investor Information - UnitedHealth Group",
       "strategy_used": "subdomain_pattern",
       "verification_score": 110,
-      "timestamp": "2025-10-08T23:34:54.447940",
+      "timestamp": "2025-10-09T20:17:09.501355",
       "error": null
     },
     {
@@ -927,7 +1043,7 @@ if __name__ == "__main__":
       "ir_page_title": "Visa - Investor Relations",
       "strategy_used": "subdomain_pattern",
       "verification_score": 100,
-      "timestamp": "2025-10-08T23:35:07.688874",
+      "timestamp": "2025-10-09T20:17:23.283355",
       "error": null
     },
     {
@@ -939,7 +1055,7 @@ if __name__ == "__main__":
       "ir_page_title": "Investor & Shareholder Hub for News & Events | About Verizon",
       "strategy_used": "subdomain_pattern",
       "verification_score": 95,
-      "timestamp": "2025-10-08T23:35:13.748836",
+      "timestamp": "2025-10-09T20:17:29.445272",
       "error": null
     },
     {
@@ -951,14 +1067,14 @@ if __name__ == "__main__":
       "ir_page_title": "Walmart Inc. (WMT)",
       "strategy_used": "subdomain_pattern",
       "verification_score": 75,
-      "timestamp": "2025-10-08T23:35:48.912573",
+      "timestamp": "2025-10-09T20:18:04.937664",
       "error": null
     }
   ],
   "success_count": 30,
   "failure_count": 0,
   "dow30_updated": "November 8, 2024",
-  "end_time": "2025-10-08T23:35:58.107162"
+  "end_time": "2025-10-09T20:18:15.568361"
 }
 </file>
 
@@ -967,8 +1083,8 @@ if __name__ == "__main__":
 INVESTOR RELATIONS PAGE FINDER - SUMMARY REPORT
 ============================================================
 
-Session Start: 2025-10-08T23:29:29.282630
-Session End: 2025-10-08T23:35:58.107162
+Session Start: 2025-10-09T20:13:54.869786
+Session End: 2025-10-09T20:18:15.568361
 Dow 30 List Updated: November 8, 2024
 
 Total Companies: 30
@@ -978,8 +1094,8 @@ Success Rate: 30/30 (100.0%)
 
 STRATEGIES USED:
 ----------------------------------------
-subdomain_pattern: 28
-link_navigation: 2
+subdomain_pattern: 29
+link_navigation: 1
 
 SUCCESSFUL COMPANIES:
 ----------------------------------------
@@ -1020,7 +1136,7 @@ HD: https://ir.homedepot.com/
   Strategy: subdomain_pattern
   Score: 80
 HON: https://investor.honeywell.com/
-  Strategy: link_navigation
+  Strategy: subdomain_pattern
   Score: 90
 IBM: https://www.ibm.com/investor
   Strategy: subdomain_pattern
@@ -1078,1767 +1194,539 @@ FAILED COMPANIES:
 ----------------------------------------
 </file>
 
+<file path=".env.example">
+# AWS S3 Configuration
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+AWS_DEFAULT_REGION=us-east-1
+S3_BUCKET_NAME=your-bucket-name
+
+# Optional: Custom S3 prefix for organizing files
+S3_PREFIX=dow30-earnings
+
+# Local directories
+DOWNLOADS_DIR=Data
+</file>
+
 <file path="File_Downloader_v2.py">
 #!/usr/bin/env python3
 """
-Enhanced Dow 30 Earnings Document Downloader
-Handles multiple quarters and various IR page structures
-Updated with latest Dow 30 companies (November 2024)
+AGGRESSIVE QUARTERLY REPORT DOWNLOADER (v3 - no explicit years)
+================================================================
+•⁠  ⁠Headless Selenium + Requests
+•⁠  ⁠IR-only scope (same registrable domain + trusted IR CDNs)
+•⁠  ⁠Robust cookie consent handling (OneTrust/TrustArc/Quantcast/Generic)
+•⁠  ⁠Scrolls to load lazy content
+•⁠  ⁠*No hardcoded years* — always tries to fetch the latest by:
+    * Page order (top-most first)
+    * Strong "quarterly" cues (Q1/Q2/Q3/Q4, "quarter", "earnings", "10‑Q")
+    * Artifact type preference: 10-Q > press release > presentation > supplement
+•⁠  ⁠Follows "Learn more / Read more" detail pages (e.g., Caterpillar, 3M)
+•⁠  ⁠SEC Filings route when needed (grabs the most recent 10‑Q row)
+•⁠  ⁠Saves only PDF / PPT / PPTX (no HTML)
+
+Inputs
+------
+•⁠  ⁠dow30_with_ir_pages.csv (ticker, company, ir_page[, found])
+
+Outputs
+-------
+quarterly_reports/TICKER/*.pdf|.pptx|.ppt
+quarterly_reports/_logs/debug.jsonl
 """
 
-import os
-import re
-import json
-import time
-import logging
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+import os, re, time, json, warnings
+from datetime import datetime
 from urllib.parse import urljoin, urlparse
-from datetime import datetime, timedelta
+
 import requests
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import multiprocessing
-from functools import partial
+import pandas as pd
+from bs4 import BeautifulSoup
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.common.exceptions import TimeoutException, WebDriverException
-from webdriver_manager.chrome import ChromeDriverManager
-from bs4 import BeautifulSoup
-import sys
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+warnings.filterwarnings("ignore")
 
-class EnhancedEarningsDownloader:
-    """Enhanced downloader for latest earnings documents"""
-    
-    # Official Dow 30 companies as of November 8, 2024
-    DOW_30_COMPANIES = {
-        'MMM': '3M Company',
-        'AMZN': 'Amazon.com Inc.',  # Added Feb 26, 2024
-        'AXP': 'American Express Company',
-        'AMGN': 'Amgen Inc.',
-        'AAPL': 'Apple Inc.',
-        'BA': 'The Boeing Company',
-        'CAT': 'Caterpillar Inc.',
-        'CVX': 'Chevron Corporation',
-        'CSCO': 'Cisco Systems Inc.',
-        'KO': 'The Coca-Cola Company',
-        'GS': 'The Goldman Sachs Group Inc.',
-        'HD': 'The Home Depot Inc.',
-        'HON': 'Honeywell International Inc.',
-        'IBM': 'International Business Machines Corporation',
-        'JNJ': 'Johnson & Johnson',
-        'JPM': 'JPMorgan Chase & Co.',
-        'MCD': 'McDonald\'s Corporation',
-        'MRK': 'Merck & Co. Inc.',
-        'MSFT': 'Microsoft Corporation',
-        'NKE': 'NIKE Inc.',
-        'NVDA': 'NVIDIA Corporation',  # Added Nov 8, 2024
-        'PG': 'The Procter & Gamble Company',
-        'CRM': 'Salesforce Inc.',
-        'SHW': 'The Sherwin-Williams Company',  # Added Nov 8, 2024
-        'TRV': 'The Travelers Companies Inc.',
-        'UNH': 'UnitedHealth Group Incorporated',
-        'VZ': 'Verizon Communications Inc.',
-        'V': 'Visa Inc.',
-        'DIS': 'The Walt Disney Company',
-        'WMT': 'Walmart Inc.'
-    }
-    
-    # Companies removed from Dow 30 (for reference)
-    REMOVED_COMPANIES = {
-        'INTC': 'Intel Corporation (Removed Nov 8, 2024)',
-        'DOW': 'Dow Inc. (Removed Nov 8, 2024)',
-        'WBA': 'Walgreens Boots Alliance (Removed Feb 26, 2024)',
-        'RTX': 'Raytheon Technologies (Removed Aug 31, 2020)',
-        'XOM': 'ExxonMobil (Removed Aug 31, 2020)',
-        'PFE': 'Pfizer (Removed Aug 31, 2020)'
-    }
-    
-    def __init__(self, input_file: str = "output/ir_finder_results.json",
-                 output_dir: str = "data/raw", headless: bool = True,
-                 validate_dow30: bool = True):
-        self.input_file = Path(input_file)
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(exist_ok=True)
-        self.headless = headless
-        self.validate_dow30 = validate_dow30
-        self.driver = None
-        self.session_data = {
-            'start_time': datetime.now().isoformat(),
-            'dow30_validation': {},
-            'companies': []
-        }
+ALLOWED_IR_ASSET_DOMAINS = (
+    "q4cdn.com","gcs-web.com","kscope.io","corporate-ir.net","equisolve.net",
+    "investis.com","tools.investis.com","otp.tools.investis.com",
+    "d18rn0p25nwr6d.cloudfront.net"
+)
+DOC_EXTS = (".pdf", ".ppt", ".pptx")
 
-        # Setup requests session for downloads
+QUARTER_CUES = [
+    "q1","q2","q3","q4",
+    "first quarter","second quarter","third quarter","fourth quarter",
+    "quarterly","quarter","quarter ended",
+    "earnings","financial results","results"
+]
+SEC_10Q_TERMS = ["10-q","form 10-q","10q"]
+EARNINGS_RELEASE_TERMS = ["press release","news release","earnings release","release"]
+PRESENTATION_TERMS = ["presentation","slides","deck","earnings call presentation","investor presentation","earnings presentation"]
+SUPPLEMENT_TERMS = ["supplement","supplemental","tables","financial supplement","statistical supplement"]
+
+PREF_KIND_SCORE = {"10q": 1000, "release": 800, "presentation": 700, "supplement": 600, "other": 100}
+
+def safe_dir(p): os.makedirs(p, exist_ok=True); return p
+
+def base_domain(h):
+    p = (h or "").lower().split(".")
+    return ".".join(p[-2:]) if len(p) >= 2 else (h or "").lower()
+
+def is_allowed_ir_link(page_url, target_url):
+    a = base_domain(urlparse(page_url).hostname)
+    b = base_domain(urlparse(target_url).hostname)
+    if a == b: return True
+    host = (urlparse(target_url).hostname or "").lower()
+    return any(host.endswith(d) for d in ALLOWED_IR_ASSET_DOMAINS)
+
+def is_pdfish_url(href: str) -> bool:
+    h = (href or "").lower()
+    return (h.endswith(DOC_EXTS) or "/static-files/" in h or "/-/media/" in h or "document" in h or "download" in h)
+
+def classify_kind(text_href: str) -> str:
+    t = (text_href or "").lower()
+    if any(k in t for k in SEC_10Q_TERMS): return "10q"
+    if any(k in t for k in EARNINGS_RELEASE_TERMS): return "release"
+    if any(k in t for k in PRESENTATION_TERMS): return "presentation"
+    if any(k in t for k in SUPPLEMENT_TERMS): return "supplement"
+    return "other"
+
+def text_is_quarterly(s: str) -> bool:
+    t = (s or "").lower()
+    return any(k in t for k in QUARTER_CUES) or any(k in t for k in SEC_10Q_TERMS)
+
+class AggressiveQuarterlyDownloaderV3:
+    def __init__(self, outdir="quarterly_reports", per_company=2):
+        self.outdir = safe_dir(outdir)
+        self.logdir = safe_dir(os.path.join(self.outdir, "_logs"))
+        self.per_company = per_company
+        # Create unique session identifier to avoid conflicts
+        import uuid
+        self.session_id = str(uuid.uuid4())[:8]
         self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        })
+        self.session.headers.update({"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+        self.driver = self._setup_selenium()
+        self.stats = {"processed":0,"successful":0,"failed":[], "total_files":0, "session_id":self.session_id}
 
-        # Statistics for tracking
-        self.stats = {
-            'processed': 0,
-            'quarterly_success': 0,
-            'fallback_success': 0,
-            'failed': [],
-            'files_downloaded': 0
-        }
-        
-        # Advanced document patterns with scoring weights
-        self.DOC_PATTERNS = {
-            'earnings': {
-                'patterns': [
-                    r'earnings\s*release', r'earnings\s*report', r'financial\s*results',
-                    r'quarterly\s*results', r'q[1-4]\s*20\d{2}', r'quarterly\s*earnings',
-                    r'results\s*of\s*operations', r'financial\s*performance'
-                ],
-                'score': 100
-            },
-            'presentation': {
-                'patterns': [
-                    r'presentation', r'slides', r'investor\s*deck', r'earnings\s*call',
-                    r'conference\s*call', r'webcast'
-                ],
-                'score': 80
-            },
-            'transcript': {
-                'patterns': [
-                    r'transcript', r'earnings\s*call\s*transcript',
-                    r'conference\s*call\s*transcript', r'prepared\s*remarks'
-                ],
-                'score': 70
-            },
-            '10-Q': {
-                'patterns': [r'10-?q', r'form\s*10-?q', r'quarterly\s*report\s*on\s*form'],
-                'score': 200  # High value for quarterly SEC filings
-            },
-            '10-K': {
-                'patterns': [r'10-?k', r'form\s*10-?k', r'annual\s*report\s*on\s*form'],
-                'score': -150  # Negative score for annual reports
-            },
-            '8-K': {
-                'patterns': [r'8-?k', r'form\s*8-?k', r'current\s*report'],
-                'score': 60
-            }
+        # Minimal IR overrides (expand if your CSV lacks IR URLs)
+        self.ir_overrides = {
+            "PG":"https://www.pginvestor.com/",
+            "DIS":"https://thewaltdisneycompany.com/investor-relations/",
+            "JPM":"https://www.jpmorganchase.com/ir",
         }
 
-        # Advanced scoring keywords
-        self.SCORING_KEYWORDS = {
-            'high_value': {
-                'q1': 200, 'q2': 200, 'q3': 200, 'q4': 200,
-                '1q': 200, '2q': 200, '3q': 200, '4q': 200,
-                'first quarter': 180, 'second quarter': 180,
-                'third quarter': 180, 'fourth quarter': 180,
-                'quarterly': 150, 'earnings': 100, 'financial results': 120
-            },
-            'medium_value': {
-                'results': 40, 'press release': 30, 'earnings release': 100,
-                'investor presentation': 60, 'conference call': 50
-            },
-            'negative_value': {
-                'annual report': -200, 'sustainability': -300, 'esg': -300,
-                'governance': -250, 'compensation': -250, 'biography': -250,
-                'charter': -250, 'committee': -200, 'board': -150,
-                'environment': -200, 'supply chain': -250, 'patent': -300,
-                'glossary': -300, 'icon': -300, 'logo': -300
-            }
-        }
-        
-        # Get current and recent quarters
-        self.target_periods = self._get_target_periods()
-    
-    def validate_dow30_companies(self, companies: List[Dict]) -> Tuple[List[Dict], Dict]:
-        """Validate that companies are in the current Dow 30"""
-        validation_results = {
-            'valid_dow30': [],
-            'invalid_companies': [],
-            'removed_companies': [],
-            'missing_dow30': []
-        }
-        
-        valid_companies = []
-        found_tickers = set()
-        
-        for company in companies:
-            ticker = company.get('ticker', '').upper()
-            found_tickers.add(ticker)
-            
-            if ticker in self.DOW_30_COMPANIES:
-                validation_results['valid_dow30'].append(ticker)
-                valid_companies.append(company)
-                logger.info(f"✓ {ticker} - Valid Dow 30 company")
-            elif ticker in self.REMOVED_COMPANIES:
-                validation_results['removed_companies'].append({
-                    'ticker': ticker,
-                    'reason': self.REMOVED_COMPANIES[ticker]
-                })
-                logger.warning(f"✗ {ticker} - {self.REMOVED_COMPANIES[ticker]}")
-            else:
-                validation_results['invalid_companies'].append(ticker)
-                logger.warning(f"✗ {ticker} - Not a Dow 30 company")
-        
-        # Check for missing Dow 30 companies
-        for dow_ticker in self.DOW_30_COMPANIES:
-            if dow_ticker not in found_tickers:
-                validation_results['missing_dow30'].append(dow_ticker)
-                logger.warning(f"⚠ {dow_ticker} - Missing from input list")
-        
-        # Save validation results
-        self.session_data['dow30_validation'] = validation_results
-        
-        # Print validation summary
-        print("\n" + "="*60)
-        print("DOW 30 VALIDATION RESULTS")
-        print("="*60)
-        print(f"Valid Dow 30 companies: {len(validation_results['valid_dow30'])}/30")
-        print(f"Invalid companies: {len(validation_results['invalid_companies'])}")
-        print(f"Removed companies: {len(validation_results['removed_companies'])}")
-        print(f"Missing Dow 30 companies: {len(validation_results['missing_dow30'])}")
-        
-        if validation_results['missing_dow30']:
-            print("\n⚠ Missing Dow 30 companies:")
-            for ticker in validation_results['missing_dow30']:
-                print(f"  - {ticker}: {self.DOW_30_COMPANIES[ticker]}")
-        
-        if validation_results['removed_companies']:
-            print("\n✗ Recently removed companies found:")
-            for item in validation_results['removed_companies']:
-                print(f"  - {item['ticker']}: {item['reason']}")
-        
-        print("="*60 + "\n")
-        
-        return valid_companies, validation_results
-    
-    def _get_target_periods(self) -> List[Dict]:
-        """Get current and recent quarters to search for"""
-        current_date = datetime.now()
-        periods = []
-        
-        # Current year quarters
-        current_year = current_date.year
-        current_quarter = (current_date.month - 1) // 3 + 1
-        
-        # Add current quarter and previous 2 quarters
-        for q_offset in range(3):
-            q = current_quarter - q_offset
-            year = current_year
-            
-            if q <= 0:
-                q += 4
-                year -= 1
-            
-            periods.append({
-                'year': year,
-                'quarter': q,
-                'patterns': [
-                    f"Q{q} {year}",
-                    f"Q{q}'{str(year)[2:]}",
-                    f"{year} Q{q}",
-                    f"FY{year} Q{q}",
-                    f"FY{str(year)[2:]} Q{q}",
-                    self._quarter_to_month_range(q, year)
-                ]
-            })
-        
-        # Also add annual patterns
-        periods.extend([
-            {'year': current_year, 'type': 'annual', 'patterns': [f"{current_year}", f"FY{current_year}", f"FY{str(current_year)[2:]}"]},
-            {'year': current_year - 1, 'type': 'annual', 'patterns': [f"{current_year - 1}", f"FY{current_year - 1}"]}
-        ])
-        
-        return periods
-    
-    def _quarter_to_month_range(self, quarter: int, year: int) -> str:
-        """Convert quarter to month range string"""
-        quarters = {
-            1: "January - March",
-            2: "April - June", 
-            3: "July - September",
-            4: "October - December"
-        }
-        return f"{quarters[quarter]} {year}"
-    
-    def setup_driver(self):
-        """Setup optimized Chrome driver with anti-detection and performance improvements"""
-        if self.driver:
-            try:
-                self.driver.quit()
-            except:
-                pass
+        # Per-company nudges only for navigation shape (no year assumptions)
+        self.special = {"AMGN":self._strategy_amgn, "GS":self._strategy_gs, "MMM":self._strategy_mmm,
+                        "MSFT":self._strategy_msft, "V":self._strategy_visa}
 
-        chrome_options = Options()
+    def _log(self, obj):
+        with open(os.path.join(self.logdir, "debug.jsonl"), "a", encoding="utf-8") as f:
+            f.write(json.dumps(obj, default=str) + "\n")
 
-        # Headless mode
-        if self.headless:
-            chrome_options.add_argument("--headless=new")
+    def _setup_selenium(self):
+        options = Options()
+        options.add_argument("--headless=new")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 
-        # Performance optimizations
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--disable-web-security")
-        chrome_options.add_argument("--disable-features=VizDisplayCompositor")
-        chrome_options.add_argument("--disable-logging")
-        chrome_options.add_argument("--disable-extensions")
-        chrome_options.add_argument("--disable-plugins")
-        chrome_options.add_argument("--disable-images")
-        chrome_options.add_argument("--disable-javascript")
-        chrome_options.add_argument("--window-size=1280,720")  # Smaller window
+        # Create unique user data directory for this session to avoid conflicts
+        import tempfile
+        user_data_dir = tempfile.mkdtemp(prefix=f"chrome_session_{self.session_id}_")
+        options.add_argument(f"--user-data-dir={user_data_dir}")
 
-        # Anti-detection
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option('useAutomationExtension', False)
-        chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        # Additional isolation arguments
+        options.add_argument("--disable-web-security")
+        options.add_argument("--disable-features=VizDisplayCompositor")
+        options.add_argument(f"--remote-debugging-port=0")  # Let Chrome pick a random port
 
-        # Memory optimization
-        chrome_options.add_argument("--memory-pressure-off")
-        chrome_options.add_argument("--max_old_space_size=4096")
+        prefs={"profile.default_content_setting_values.images":2,"download.prompt_for_download":False}
+        options.add_experimental_option("prefs", prefs)
 
-        # Download preferences for better file handling
-        prefs = {
-            "download.default_directory": str(self.output_dir.absolute()),
-            "download.prompt_for_download": False,
-            "download.directory_upgrade": True,
-            "plugins.always_open_pdf_externally": True,
-            "profile.default_content_settings.popups": 0,
-            "profile.default_content_setting_values.notifications": 2
-        }
-        chrome_options.add_experimental_option("prefs", prefs)
-
-        try:
-            # Use webdriver manager for automatic driver management
-            service = Service(ChromeDriverManager().install())
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
-        except Exception as e:
-            logger.warning(f"Failed to use webdriver manager: {e}, trying default")
-            self.driver = webdriver.Chrome(options=chrome_options)
-
-        # Optimized timeouts
-        self.driver.set_page_load_timeout(20)  # Reduced from 30
-        self.driver.implicitly_wait(3)  # Reduced from 5
-
-        # Execute script to further hide automation
-        self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-
-        logger.info("Optimized Chrome driver initialized")
-    
-    def find_latest_earnings(self, ticker: str, ir_url: str) -> List[Dict]:
-        """Find latest earnings documents with enhanced error handling and retries"""
-        documents = []
+        # Retry logic for driver creation
         max_retries = 3
-        retry_delay = 2
-
-        try:
-            for attempt in range(max_retries):
-                try:
-                    logger.info(f"Processing {ticker}: {ir_url} (attempt {attempt + 1}/{max_retries})")
-
-                    # Enhanced page loading with timeout handling
-                    self.driver.get(ir_url)
-
-                    # Reduced wait time with better error handling
-                    try:
-                        WebDriverWait(self.driver, 8).until(
-                            EC.presence_of_element_located((By.TAG_NAME, "body"))
-                        )
-                        time.sleep(1)  # Reduced from 3 seconds
-                        break  # Success, exit retry loop
-                    except TimeoutException:
-                        logger.warning(f"Page load timeout for {ticker}, attempt {attempt + 1}")
-                        if attempt < max_retries - 1:
-                            time.sleep(retry_delay)
-                            continue
-                        else:
-                            raise
-                except WebDriverException as e:
-                    logger.warning(f"WebDriver error for {ticker}: {e}")
-                    if attempt < max_retries - 1:
-                        time.sleep(retry_delay)
-                        self.setup_driver()  # Restart driver on error
-                        continue
-                    else:
-                        raise
-
-            # STRATEGY 1: Advanced Selenium quarterly search
-            quarterly_docs = self._selenium_quarterly_search(ticker)
-            if quarterly_docs:
-                documents.extend(quarterly_docs)
-                self.stats['quarterly_success'] += 1
-                logger.info(f"Found {len(quarterly_docs)} quarterly documents via Selenium")
-
-            # STRATEGY 2: Navigate to financial sections
-            if len(documents) < 3:
-                section_docs = self._navigate_to_financial_sections()
-                documents.extend(section_docs)
-
-            # STRATEGY 3: Find all PDFs with context scoring
-            if len(documents) < 3:
-                pdf_docs = self._find_all_pdfs_with_context()
-                documents.extend(pdf_docs)
-
-            # STRATEGY 4: Fallback requests scraping if not enough found
-            if len(documents) < 2:
-                fallback_docs = self._requests_fallback(ticker, ir_url, 3 - len(documents))
-                if fallback_docs:
-                    documents.extend(fallback_docs)
-                    self.stats['fallback_success'] += 1
-
-            # Deduplicate and score
-            seen_urls = set()
-            unique_docs = []
-            for doc in documents:
-                if doc['url'] not in seen_urls and doc.get('score', 0) > 50:
-                    seen_urls.add(doc['url'])
-                    unique_docs.append(doc)
-
-            # Sort by quarterly priority, then score, then date
-            def sort_key(doc):
-                is_quarterly = doc.get('is_quarterly', False)
-                score = doc.get('score', 0)
-                date = doc.get('date')
-                date_score = 0
-                if date:
-                    days_old = (datetime.now() - date).days
-                    date_score = max(0, 365 - days_old)
-                return (is_quarterly, score, date_score)
-
-            unique_docs.sort(key=sort_key, reverse=True)
-
-            # Log results
-            logger.info(f"Found {len(unique_docs)} relevant documents for {ticker}")
-            for i, doc in enumerate(unique_docs[:5], 1):
-                logger.info(f"  {i}. [Score: {doc.get('score', 0)}] {doc.get('type', 'unknown')} - {doc.get('text', 'No title')[:50]}")
-
-            return unique_docs[:8]
-
-        except Exception as e:
-            logger.error(f"Failed to process {ticker} after {max_retries} attempts: {e}")
-            self.stats['failed'].append(ticker)
-
-            # Try to restart driver for next company
-            try:
-                self.setup_driver()
-            except Exception as driver_error:
-                logger.error(f"Failed to restart driver: {driver_error}")
-
-            return []
-    
-    def _download_pdf_selenium(self, doc_info: Dict, company_dir: Path, file_type: str) -> bool:
-        """Download PDF using Selenium-found URL"""
-        try:
-            # Create safe filename
-            safe_title = self._make_filename_safe(doc_info['text'][:40])
-            date_str = doc_info['date'].strftime('%Y-%m-%d') if doc_info.get('date') else 'NoDate'
-            score = doc_info.get('score', 0)
-            filename = f"{date_str}_{file_type}_S{score:03d}_{safe_title}.pdf"
-            filepath = company_dir / filename
-
-            # Skip if exists
-            if filepath.exists():
-                logger.info(f"File exists: {filename}")
-                return True
-
-            # Download using requests
-            response = self.session.get(doc_info['url'], timeout=30, verify=False)
-
-            if response.status_code != 200:
-                return False
-
-            # Validate PDF
-            if not response.content.startswith(b'%PDF'):
-                return False
-
-            # Size check
-            size_kb = len(response.content) / 1024
-            if size_kb < 10 or size_kb > 50000:
-                return False
-
-            # Save file
-            with open(filepath, 'wb') as f:
-                f.write(response.content)
-
-            logger.info(f"✅ {file_type}: {size_kb:.0f}KB - {filename}")
-            return True
-
-        except Exception as e:
-            logger.debug(f"Download failed: {e}")
-            return False
-    
-    def _enhanced_download_with_fallback(self, doc_info: Dict, filepath: Path) -> bool:
-        """Enhanced download with robust error handling and retries"""
-        max_retries = 3
-
         for attempt in range(max_retries):
             try:
-                url = doc_info['url']
-                logger.debug(f"Download attempt {attempt + 1}/{max_retries} for {filepath.name}")
-
-                # Strategy 1: Direct download with optimized requests
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'application/pdf,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5',
-                    'Connection': 'keep-alive',
-                    'Referer': self.current_ir_url
-                }
-
-                # Reduced timeout for faster failures
-                response = self.session.get(url, timeout=15, verify=False, allow_redirects=True, headers=headers)
-                response.raise_for_status()
-
-                # Check content type
-                content_type = response.headers.get('content-type', '').lower()
-
-                # If HTML instead of PDF, try Selenium
-                if 'text/html' in content_type and filepath.suffix.lower() == '.pdf':
-                    logger.warning(f"Got HTML instead of PDF, trying Selenium")
-                    return self._selenium_download_strategy(url, filepath)
-
-                # Save file
-                with open(filepath, 'wb') as f:
-                    f.write(response.content)
-
-                # Validate PDF
-                if filepath.suffix.lower() == '.pdf':
-                    if not self.validate_pdf(filepath):
-                        logger.error(f"Downloaded PDF is corrupted")
-                        filepath.unlink()
-                        return self._selenium_download_strategy(url, filepath)
-
-                size_mb = filepath.stat().st_size / (1024 * 1024)
-
-                # Check file size
-                if size_mb < 0.01:
-                    logger.warning(f"File unusually small: {size_mb:.2f} MB")
-                    filepath.unlink()
-                    return False
-
-                logger.info(f"Downloaded successfully: {filepath.name} ({size_mb:.2f} MB)")
-                return True
-
-            except requests.exceptions.RequestException as e:
-                logger.warning(f"Download attempt {attempt + 1} failed: {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(1)  # Brief pause before retry
-                    continue
-                else:
-                    logger.error(f"All download attempts failed for {filepath.name}")
-                    return False
+                driver = webdriver.Chrome(options=options)
+                driver.set_page_load_timeout(40)
+                print(f"Chrome driver initialized successfully for session {self.session_id} (attempt {attempt + 1})")
+                return driver
             except Exception as e:
-                logger.error(f"Unexpected download error: {e}")
-                return False
+                print(f"Failed to initialize Chrome driver (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt == max_retries - 1:
+                    raise
+                time.sleep(2)  # Wait before retry
 
+    def _accept_cookies(self):
+        XPATHS = [
+            "//button[contains(@id,'onetrust-accept-btn')]",
+            "//button[contains(@class,'onetrust-accept-btn-handler')]",
+            "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept all')]",
+            "//button[contains(@class,'css') and contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
+            "//a[contains(@class,'trustarc') and contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
+            "//button[contains(@class,'truste-button') or contains(@class,'trustarc')]",
+            "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
+            "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'agree')]",
+            "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'allow')]",
+            "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
+            "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'agree')]"
+        ]
+        for xp in XPATHS:
+            try:
+                elems = self.driver.find_elements(By.XPATH, xp)
+                for el in elems:
+                    if el.is_displayed():
+                        self.driver.execute_script("arguments[0].click();", el)
+                        time.sleep(0.7)
+                        return True
+            except Exception:
+                continue
         return False
 
-    def _selenium_download_strategy(self, url: str, filepath: Path) -> bool:
-        """Download using Selenium for JavaScript-heavy pages"""
+    def _scroll(self, cycles=6, pause=0.8):
+        last = 0
+        for _ in range(cycles):
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(pause)
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
+            time.sleep(0.4)
+            cur = self.driver.execute_script("return document.body.scrollHeight")
+            if cur == last: break
+            last = cur
+        self.driver.execute_script("window.scrollTo(0,0);")
+        time.sleep(0.5)
+
+    def _download_if_doc(self, ticker, url, title):
         try:
-            # Configure Chrome for downloads
-            self.driver.execute_cdp_cmd("Page.setDownloadBehavior", {
-                "behavior": "allow",
-                "downloadPath": str(filepath.parent.absolute())
-            })
-
-            # Navigate to URL
-            self.driver.get(url)
-            time.sleep(5)
-
-            # Check if file was downloaded
-            download_dir = filepath.parent
-            for file in download_dir.glob("*.pdf"):
-                if file.stat().st_mtime > time.time() - 10:
-                    file.rename(filepath)
-                    return True
-
-            # Try to find actual download link
-            download_selectors = [
-                "a[download]",
-                "a[href*='.pdf']",
-                "a:contains('Download')",
-                "button:contains('Download')",
-                "iframe"
-            ]
-
-            for selector in download_selectors:
-                try:
-                    elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                    for elem in elements:
-                        href = elem.get_attribute('href') or elem.get_attribute('src')
-                        if href and ('.pdf' in href.lower() or 'download' in href.lower()):
-                            logger.info(f"Found actual download link: {href}")
-                            # Try direct download with new URL
-                            response = self.session.get(href, timeout=30, verify=False)
-                            if response.status_code == 200:
-                                with open(filepath, 'wb') as f:
-                                    f.write(response.content)
-                                return True
-                except:
-                    continue
-
-            return False
-
-        except Exception as e:
-            logger.error(f"Selenium download failed: {e}")
-            return False
-    
-    def _process_company_enhanced(self, ticker: str, company: str, ir_url: str) -> Dict:
-        """Enhanced company processing with advanced strategies"""
-        logger.info(f"\n{'='*80}")
-        logger.info(f"PROCESSING: {ticker} - {company}")
-        logger.info(f"IR URL: {ir_url}")
-        logger.info(f"{'='*80}")
-
-        self.stats['processed'] += 1
-        company_dir = self.output_dir / ticker
-        company_dir.mkdir(exist_ok=True)
-
-        downloaded_files = []
-
-        try:
-            # Store current URL for navigation
-            self.current_ir_url = ir_url
-
-            # Find documents using enhanced Selenium search
-            documents = self.find_latest_earnings(ticker, ir_url)
-
-            # Prioritize quarterly documents
-            quarterly_docs = [doc for doc in documents if doc.get('is_quarterly', False)]
-            other_docs = [doc for doc in documents if not doc.get('is_quarterly', False)]
-
-            download_queue = quarterly_docs[:3] + other_docs[:2]  # Max 3 quarterly + 2 others
-
-            logger.info(f"Download queue: {len(quarterly_docs)} quarterly + {len(other_docs)} other docs")
-
-            # Download documents
-            for i, doc in enumerate(download_queue, 1):
-                doc_type = "QUARTERLY" if doc.get('is_quarterly', False) else "REGULAR"
-                logger.info(f"  Downloading {i}/{len(download_queue)} [{doc_type}] Score:{doc.get('score', 0)} - {doc.get('text', 'No title')[:40]}")
-
-                if self._download_document_enhanced(doc, company_dir, ticker):
-                    downloaded_files.append(doc)
-                    self.stats['files_downloaded'] += 1
-
-            if not downloaded_files:
-                logger.info(f"❌ No files downloaded for {ticker}")
-                self.stats['failed'].append(ticker)
-            else:
-                logger.info(f"✅ Success: {len(downloaded_files)} files downloaded for {ticker}")
-
-            return {
-                'ticker': ticker,
-                'company_name': company,
-                'ir_url': ir_url,
-                'documents_found': len(documents),
-                'documents_downloaded': len(downloaded_files),
-                'documents': documents
-            }
-
-        except Exception as e:
-            logger.error(f"❌ Error processing {ticker}: {e}")
-            self.stats['failed'].append(ticker)
-            return {
-                'ticker': ticker,
-                'company_name': company,
-                'ir_url': ir_url,
-                'documents_found': 0,
-                'documents_downloaded': 0,
-                'documents': [],
-                'error': str(e)
-            }
-    
-    def _download_document_enhanced(self, doc_info: Dict, company_dir: Path, ticker: str) -> bool:
-        """Enhanced document download with multiple strategies"""
-        try:
-            url = doc_info['url']
-
-            # Make URL absolute if relative
-            if not url.startswith(('http://', 'https://')):
-                url = urljoin(self.current_ir_url, url)
-                doc_info['url'] = url
-
-            # Generate enhanced filename
-            doc_type = doc_info.get('type', 'document').replace(' ', '_')
-            score = doc_info.get('score', 0)
-            is_quarterly = doc_info.get('is_quarterly', False)
-
-            # Period string
-            period_str = ''
-            if doc_info.get('date'):
-                date_obj = doc_info['date']
-                quarter = ((date_obj.month - 1) // 3) + 1
-                period_str = f"_Q{quarter}_{date_obj.year}"
-
-            # Quality indicators
-            quality_prefix = "HIGH_" if is_quarterly else "REG_"
-            score_str = f"S{score:03d}_"
-
-            timestamp = datetime.now().strftime('%Y%m%d')
-            extension = '.pdf'
-
-            # Check URL for extension
-            for ext in ['.pdf', '.xlsx', '.xls', '.doc', '.docx']:
-                if ext in url.lower():
-                    extension = ext
-                    break
-
-            filename = f"{ticker}_{quality_prefix}{score_str}{doc_type}{period_str}_{timestamp}{extension}"
-            filepath = company_dir / filename
-
-            # Skip if exists and valid
-            if filepath.exists():
-                if extension == '.pdf' and self.validate_pdf(filepath):
-                    logger.info(f"Already exists (valid): {filename}")
-                    return True
-                elif extension != '.pdf':
-                    logger.info(f"Already exists: {filename}")
-                    return True
-                else:
-                    logger.warning(f"Existing PDF corrupted, re-downloading")
-                    filepath.unlink()
-
-            logger.info(f"Downloading: {filename}")
-
-            # Use enhanced download with fallback
-            if self._enhanced_download_with_fallback(doc_info, filepath):
-                file_size_mb = filepath.stat().st_size / (1024 * 1024)
-                logger.info(f"✅ Downloaded: {filename} ({file_size_mb:.2f} MB)")
-
-                doc_info['downloaded'] = True
-                doc_info['filename'] = filename
-                doc_info['size_mb'] = file_size_mb
-                return True
-            else:
-                logger.error(f"❌ Failed to download: {filename}")
-                return False
-
-        except Exception as e:
-            logger.error(f"Download failed: {e}")
-            return False
-    
-    def _generate_final_summary(self) -> None:
-        """Generate final processing summary"""
-        logger.info(f"\n{'='*80}")
-        logger.info(f"FINAL SUMMARY")
-        logger.info(f"{'='*80}")
-
-        stats = self.stats
-        logger.info(f"📈 PROCESSING STATISTICS:")
-        logger.info(f"   Companies processed: {stats['processed']}")
-        logger.info(f"   Quarterly successes: {stats['quarterly_success']}")
-        logger.info(f"   Fallback successes:  {stats['fallback_success']}")
-        logger.info(f"   Total files downloaded: {stats['files_downloaded']}")
-        logger.info(f"   Failed companies: {len(stats['failed'])}")
-
-        if stats['failed']:
-            logger.info(f"\n❌ FAILED COMPANIES:")
-            for ticker in stats['failed']:
-                logger.info(f"   - {ticker}")
-
-        success_rate = ((stats['quarterly_success'] + stats['fallback_success']) / stats['processed']) * 100 if stats['processed'] > 0 else 0
-        logger.info(f"\n🎯 SUCCESS RATE: {success_rate:.1f}%")
-        logger.info(f"📁 Total files: {stats['files_downloaded']}")
-    
-    def setup_driver(self):
-        """Setup Chrome driver with enhanced anti-detection and download support"""
-        if self.driver:
-            try:
-                self.driver.quit()
-            except:
-                pass
-
-        chrome_options = Options()
-
-        if self.headless:
-            chrome_options.add_argument("--headless=new")
-
-        # Enhanced options for better compatibility
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--window-size=1920,1080")
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option('useAutomationExtension', False)
-        chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-
-        # Download preferences
-        prefs = {
-            "download.default_directory": str(self.output_dir.absolute()),
-            "download.prompt_for_download": False,
-            "download.directory_upgrade": True,
-            "plugins.always_open_pdf_externally": True
-        }
-        chrome_options.add_experimental_option("prefs", prefs)
-
-        self.driver = webdriver.Chrome(options=chrome_options)
-        self.driver.set_page_load_timeout(30)
-        self.driver.implicitly_wait(5)
-        logger.info("Enhanced Chrome driver initialized")
-    
-    def _analyze_link(self, element, href: str, text: str, period: Dict = None) -> Optional[Dict]:
-        """Advanced analysis of link relevance with comprehensive scoring"""
-        if not href:
-            return None
-
-        # Skip javascript and mailto
-        if href.startswith(('javascript:', 'mailto:')):
-            return None
-
-        # Get enhanced context
-        context = self._get_enhanced_context(element)
-        combined_text = f"{href} {text} {context}".lower()
-
-        # Calculate comprehensive score
-        total_score = self._calculate_advanced_score(combined_text, period)
-
-        # Determine document type
-        doc_type = self._determine_document_type(combined_text)
-
-        # Extract date from context
-        extracted_date = self._extract_date_from_text(combined_text)
-
-        # File extension validation
-        valid_ext = any(ext in href.lower() for ext in ['.pdf', '.xlsx', '.xls', '.doc', '.docx'])
-        if valid_ext:
-            total_score += 20
-
-        # Optimized threshold with early filtering
-        if total_score > 75:  # Raised threshold for better quality
-            return {
-                'url': href,
-                'text': text or 'Document',
-                'context': context,
-                'type': doc_type,
-                'period': period,
-                'score': total_score,
-                'date': extracted_date,
-                'is_quarterly': total_score >= 150  # Higher confidence threshold
-            }
-
-        return None
-
-    def _get_enhanced_context(self, element) -> str:
-        """Get enhanced context around an element using Selenium"""
-        context_parts = []
-
-        try:
-            # Get parent text
-            parent = element.find_element(By.XPATH, "..")
-            if parent:
-                parent_text = parent.text.strip()
-                if parent_text and len(parent_text) < 200:
-                    context_parts.append(parent_text)
-
-            # Get table row context
-            try:
-                row = element.find_element(By.XPATH, "./ancestor::tr[1]")
-                if row:
-                    row_text = row.text.strip()
-                    if row_text and len(row_text) < 300:
-                        context_parts.append(row_text)
-            except:
-                pass
-
-            # Get heading context
-            try:
-                for h_level in ['h1', 'h2', 'h3', 'h4', 'h5']:
-                    heading = element.find_element(By.XPATH, f"./preceding::{h_level}[1]")
-                    if heading:
-                        heading_text = heading.text.strip()
-                        if heading_text and len(heading_text) < 100:
-                            context_parts.append(heading_text)
-                        break
-            except:
-                pass
-
-        except Exception as e:
-            logger.debug(f"Error getting context: {e}")
-
-        return ' '.join(context_parts)[:300]
-
-    def _calculate_advanced_score(self, combined_text: str, period: Dict = None) -> int:
-        """Optimized relevance score calculation with caching and early returns"""
-        if not combined_text:
-            return 0
-
-        score = 0
-        text_lower = combined_text.lower()  # Convert once
-
-        # Early exit for clearly irrelevant content
-        negative_keywords = ['sustainability', 'esg', 'governance', 'biography', 'charter']
-        if any(neg in text_lower for neg in negative_keywords):
-            return -100
-
-        # Base period score
-        if period:
-            score += 50
-
-        # Optimized keyword scoring with compiled regex
-        # High-value keywords (quarterly indicators)
-        high_value_patterns = r'\b(q[1-4]|quarter|quarterly|earnings|financial results)\b'
-        if re.search(high_value_patterns, text_lower):
-            score += 150
-
-        # PDF bonus
-        if '.pdf' in text_lower:
-            score += 50
-
-        # Recent year bonus (current and last 2 years)
-        current_year = datetime.now().year
-        year_pattern = f'\b({current_year}|{current_year-1}|{current_year-2})\b'
-        if re.search(year_pattern, text_lower):
-            score += 75
-
-        # 10-Q forms (high priority)
-        if re.search(r'10-?q', text_lower):
-            score += 200
-
-        # 10-K forms (penalty for annual)
-        elif re.search(r'10-?k', text_lower):
-            score -= 150
-
-        # Date recency bonus (optimized)
-        extracted_date = self._extract_date_from_text(text_lower)
-        if extracted_date:
-            days_old = (datetime.now() - extracted_date).days
-            if days_old <= 90:
-                score += 100
-            elif days_old <= 180:
-                score += 50
-
-        return score
-
-    def _determine_document_type(self, combined_text: str) -> str:
-        """Determine the type of document based on content analysis"""
-        # Check each document type pattern
-        for doc_type, config in self.DOC_PATTERNS.items():
-            for pattern in config['patterns']:
-                if re.search(pattern, combined_text):
-                    return doc_type
-
-        # Fallback type detection
-        if 'press release' in combined_text:
-            return 'earnings'
-        elif 'presentation' in combined_text or 'slides' in combined_text:
-            return 'presentation'
-        elif 'transcript' in combined_text:
-            return 'transcript'
-        elif '.pdf' in combined_text:
-            return 'document'
-
-        return 'unknown'
-
-    def _extract_date_from_text(self, text: str) -> Optional[datetime]:
-        """Enhanced date extraction from text"""
-        if not text:
-            return None
-
-        try:
-            # Common date patterns
-            date_patterns = [
-                (r'(\d{4})-(\d{1,2})-(\d{1,2})', '%Y-%m-%d'),
-                (r'(\d{1,2})/(\d{1,2})/(\d{4})', '%m/%d/%Y'),
-                (r'(\d{1,2})-(\d{1,2})-(\d{4})', '%m-%d-%Y'),
-                (r'(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2}),?\s+(\d{4})', '%B %d %Y'),
-                (r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2}),?\s+(\d{4})', '%b %d %Y')
-            ]
-
-            for pattern, date_format in date_patterns:
-                match = re.search(pattern, text, re.IGNORECASE)
-                if match:
-                    try:
-                        if len(match.groups()) == 3:
-                            date_str = match.group().replace(',', '')
-                            parsed_date = datetime.strptime(date_str, date_format)
-                            if 2020 <= parsed_date.year <= 2026:
-                                return parsed_date
-                    except ValueError:
-                        continue
-
-            # Year + Quarter pattern
-            year_quarter = re.search(r'(20[2-3][0-9])\s*q([1-4])', text, re.IGNORECASE)
-            if year_quarter:
-                year = int(year_quarter.group(1))
-                quarter = int(year_quarter.group(2))
-                month = quarter * 3
-                return datetime(year, month, 15)  # Mid-quarter date
-
-            # Just year
-            year_match = re.search(r'\b(20[2-3][0-9])\b', text)
-            if year_match:
-                year = int(year_match.group(1))
-                return datetime(year, 6, 15)  # Mid-year date
-
-        except Exception as e:
-            logger.debug(f"Date extraction error: {e}")
-
-        return None
-
-    def _selenium_quarterly_search(self, ticker: str) -> List[Dict]:
-        """Optimized Selenium search for quarterly reports with parallel processing"""
-        quarterly_links = []
-
-        try:
-            # Get page source and parse with BeautifulSoup
-            page_source = self.driver.page_source
-            soup = BeautifulSoup(page_source, 'html.parser')
-
-            # Optimized quarterly keywords (reduced set)
-            quarterly_keywords = {'q1', 'q2', 'q3', 'q4', 'quarter', 'quarterly', 'earnings', '10-q'}
-
-            all_links = soup.find_all('a', href=True)[:100]  # Limit to first 100 links for performance
-
-            # Process links in smaller batches for better performance
-            def process_link_batch(links_batch):
-                batch_results = []
-                for link in links_batch:
-                    try:
-                        link_text = link.get_text(' ', strip=True).lower()
-                        link_href = link.get('href', '').lower()
-
-                        # Quick check before expensive operations
-                        if not link_href.endswith('.pdf'):
-                            continue
-
-                        # Fast keyword check using set intersection
-                        text_words = set(link_text.split())
-                        if not text_words.intersection(quarterly_keywords):
-                            continue
-
-                        context = self._get_selenium_context(link)
-                        combined_text = f"{link_text} {context} {link_href}".lower()
-                        full_url = urljoin(self.driver.current_url, link['href'])
-
-                        batch_results.append({
-                            'url': full_url,
-                            'text': link_text,
-                            'context': context,
-                            'date': self._extract_date_from_text(combined_text),
-                            'score': self._calculate_advanced_score(combined_text),
-                            'type': 'quarterly',
-                            'is_quarterly': True,
-                            'source': 'selenium_direct'
-                        })
-                    except Exception:
-                        continue
-                return batch_results
-
-            # Process links in parallel batches
-            batch_size = 25
-            link_batches = [all_links[i:i + batch_size] for i in range(0, len(all_links), batch_size)]
-
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                future_results = [executor.submit(process_link_batch, batch) for batch in link_batches]
-                for future in as_completed(future_results):
-                    quarterly_links.extend(future.result())
-
-            logger.info(f"Found {len(quarterly_links)} direct quarterly PDF links")
-
-        except Exception as e:
-            logger.debug(f"Error finding quarterly links: {e}")
-
-        return quarterly_links
-
-    def _navigate_to_financial_sections(self) -> List[Dict]:
-        """Navigate to common financial sections"""
-        financial_docs = []
-
-        try:
-            # Common financial section keywords
-            section_selectors = [
-                "financial", "earnings", "reports", "quarterly", "results",
-                "presentation", "investor presentation", "financial reports",
-                "sec filings", "10-q", "financial information"
-            ]
-
-            for section in section_selectors:
-                try:
-                    # Try to find and click section links
-                    elements = self.driver.find_elements(By.XPATH,
-                        f"//a[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{section}')]")
-
-                    for element in elements[:2]:  # Try first 2 matches
-                        try:
-                            # Scroll to element and click
-                            self.driver.execute_script("arguments[0].scrollIntoView();", element)
-                            time.sleep(1)
-                            element.click()
-                            time.sleep(3)
-
-                            # Look for PDFs on this page
-                            page_pdfs = self._find_pdfs_on_current_page()
-                            financial_docs.extend(page_pdfs)
-
-                            # Go back to main page
-                            self.driver.back()
-                            time.sleep(2)
-
-                        except Exception as e:
-                            continue
-
-                except Exception as e:
-                    continue
-
-            logger.info(f"Found {len(financial_docs)} PDFs from financial sections")
-
-        except Exception as e:
-            logger.debug(f"Navigation error: {e}")
-
-        return financial_docs
-
-    def _find_pdfs_on_current_page(self) -> List[Dict]:
-        """Find all PDFs on current page"""
-        pdfs = []
-
-        try:
-            page_source = self.driver.page_source
-            soup = BeautifulSoup(page_source, 'html.parser')
-
-            for link in soup.find_all('a', href=True):
-                if link['href'].lower().endswith('.pdf'):
-                    link_text = link.get_text(' ', strip=True)
-                    context = self._get_link_context_bs4(link)
-                    full_url = urljoin(self.driver.current_url, link['href'])
-                    combined_text = f"{link_text} {context}"
-
-                    pdfs.append({
-                        'url': full_url,
-                        'text': link_text,
-                        'context': context,
-                        'date': self._extract_date_from_text(combined_text),
-                        'score': self._calculate_advanced_score(combined_text.lower()),
-                        'type': self._determine_document_type(combined_text.lower()),
-                        'is_quarterly': self._calculate_advanced_score(combined_text.lower()) >= 100,
-                        'source': 'section_navigation'
-                    })
-
-        except Exception as e:
-            logger.debug(f"Error finding PDFs on page: {e}")
-
-        return pdfs
-
-    def _find_all_pdfs_with_context(self) -> List[Dict]:
-        """Find all PDFs and filter by context"""
-        all_pdfs = []
-
-        try:
-            page_source = self.driver.page_source
-            soup = BeautifulSoup(page_source, 'html.parser')
-
-            for link in soup.find_all('a', href=True):
-                if link['href'].lower().endswith('.pdf'):
-                    link_text = link.get_text(' ', strip=True)
-                    context = self._get_link_context_bs4(link)
-                    full_url = urljoin(self.driver.current_url, link['href'])
-                    combined_text = f"{link_text} {context}"
-
-                    all_pdfs.append({
-                        'url': full_url,
-                        'text': link_text,
-                        'context': context,
-                        'date': self._extract_date_from_text(combined_text),
-                        'score': self._calculate_advanced_score(combined_text.lower()),
-                        'type': self._determine_document_type(combined_text.lower()),
-                        'is_quarterly': self._calculate_advanced_score(combined_text.lower()) >= 100,
-                        'source': 'all_pdfs'
-                    })
-
-            # Filter PDFs with good scores
-            quarterly_pdfs = [pdf for pdf in all_pdfs if pdf['score'] > 50]
-            quarterly_pdfs.sort(key=lambda x: x['score'], reverse=True)
-
-            logger.info(f"Found {len(quarterly_pdfs)} scored PDFs")
-
-            return quarterly_pdfs[:5]
-
-        except Exception as e:
-            logger.debug(f"Error in PDF context search: {e}")
-            return []
-
-    def _get_selenium_context(self, element) -> str:
-        """Get context around an element using BeautifulSoup"""
-        context_parts = []
-
-        try:
-            # Parent context
-            parent = element.parent
-            if parent:
-                context_parts.append(parent.get_text(' ', strip=True))
-
-            # Previous siblings
-            prev_sibling = element.previous_sibling
-            if prev_sibling and hasattr(prev_sibling, 'get_text'):
-                context_parts.append(prev_sibling.get_text(' ', strip=True))
-
-            # Heading context
-            for heading in element.find_parents(['h1', 'h2', 'h3', 'h4', 'h5']):
-                context_parts.append(heading.get_text(' ', strip=True))
-                break
-
-            # Table context
-            table_parent = element.find_parent('table')
-            if table_parent:
-                context_parts.append(table_parent.get_text(' ', strip=True))
-
-        except Exception as e:
-            pass
-
-        return ' '.join(context_parts)[:300]
-
-    def _get_link_context_bs4(self, link_element) -> str:
-        """Get context for BeautifulSoup elements"""
-        context_parts = []
-
-        try:
-            parent = link_element.parent
-            if parent:
-                context_parts.append(parent.get_text(' ', strip=True))
-
-            for heading in link_element.find_parents(['h1', 'h2', 'h3', 'h4']):
-                context_parts.append(heading.get_text(' ', strip=True))
-                break
-
-        except:
-            pass
-
-        return ' '.join(context_parts)[:200]
-
-    def _requests_fallback(self, ticker: str, ir_url: str, max_files: int) -> List[Dict]:
-        """Optimized fallback using requests with parallel processing"""
-        downloaded_files = []
-
-        try:
-            logger.info(f"Trying optimized requests fallback for {ticker}...")
-            response = self.session.get(ir_url, timeout=10, verify=False)  # Reduced timeout
-
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, 'html.parser')
-
-                # Find PDF links more efficiently
-                pdf_links_raw = soup.find_all('a', href=lambda x: x and x.lower().endswith('.pdf'))
-
-                def process_pdf_link(link):
-                    try:
-                        link_text = link.get_text(' ', strip=True)
-                        context = self._get_link_context_bs4(link)
-                        full_url = urljoin(ir_url, link['href'])
-                        combined_text = f"{link_text} {context}"
-                        score = self._calculate_advanced_score(combined_text.lower())
-
-                        # Early filter - only process high-scoring links
-                        if score < 50:
-                            return None
-
-                        return {
-                            'url': full_url,
-                            'text': link_text,
-                            'context': context,
-                            'date': self._extract_date_from_text(combined_text),
-                            'score': score,
-                            'type': self._determine_document_type(combined_text.lower()),
-                            'is_quarterly': score >= 150,
-                            'source': 'requests_fallback'
-                        }
-                    except Exception:
-                        return None
-
-                # Process PDF links in parallel
-                with ThreadPoolExecutor(max_workers=4) as executor:
-                    pdf_results = list(executor.map(process_pdf_link, pdf_links_raw[:50]))  # Limit processing
-
-                # Filter None results and sort
-                pdf_links = [link for link in pdf_results if link is not None]
-                pdf_links.sort(key=lambda x: x['score'], reverse=True)
-                downloaded_files = pdf_links[:max_files]
-
-                logger.info(f"Fallback found {len(downloaded_files)} files")
-
-        except Exception as e:
-            logger.debug(f"Fallback failed: {e}")
-
-        return downloaded_files
-
-    def _make_filename_safe(self, text: str) -> str:
-        """Make filename safe"""
-        if not text or text.strip() == '':
-            return "document"
-
-        safe_text = re.sub(r'[<>:"/\\|?*]', '_', text)
-        safe_text = re.sub(r'\s+', '_', safe_text.strip())
-        safe_text = safe_text.strip('_.')
-
-        return safe_text[:40]
-
-    def validate_pdf(self, filepath: Path) -> bool:
-        """Validate if PDF is not corrupted"""
-        try:
-            with open(filepath, 'rb') as f:
-                header = f.read(5)
-                # Check PDF header
-                if header != b'%PDF-':
-                    return False
-                
-                # Check file size (PDFs should be at least a few KB)
-                if filepath.stat().st_size < 1024:  # Less than 1KB
-                    return False
-                
-                # Check for PDF footer
-                f.seek(-100, 2)  # Go to end of file
-                tail = f.read()
-                if b'%%EOF' not in tail:
-                    logger.warning(f"PDF may be incomplete: {filepath.name}")
-                
+            r = self.session.get(url, timeout=30, allow_redirects=True, verify=False)
+            if r.status_code != 200: return False
+            ct = r.headers.get("content-type","").lower()
+            data = r.content or b""
+            ok_ct = any(x in ct for x in ["pdf","presentation","powerpoint","ms-powerpoint","officedocument.presentationml.presentation"])
+            ok_ext = any(url.lower().endswith(ext) for ext in DOC_EXTS)
+            ok_sniff = data.startswith(b"%PDF") or data[:4]==b"PK\x03\x04"
+            if not (ok_ct or ok_ext or ok_sniff): return False
+            base = safe_dir(os.path.join(self.outdir, ticker))
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            safe_title = re.sub(r"[^A-Za-z0-9]+","", (title or "Quarterly_Report")).strip("")[:60]
+            ext = ".pdf" if data.startswith(b"%PDF") or url.lower().endswith(".pdf") else (".pptx" if "presentationml" in ct or url.lower().endswith(".pptx") else ".ppt")
+            path = os.path.join(base, f"{ticker}{ts}{safe_title}{ext}")
+            with open(path,"wb") as f: f.write(data)
+            print(f"      ✅ Saved: {os.path.basename(path)}")
+            self.stats["total_files"] += 1
             return True
         except Exception as e:
-            logger.error(f"PDF validation error: {e}")
+            self._log({"stage":"download","ticker":ticker,"url":url,"err":str(e)})
             return False
-    
+
+    def _collect_ranked_candidates_from_soup(self, soup):
+        """
+        Collect anchors that look quarterly or point to detail pages;
+        rank by kind preference and position (earlier is better).
+        """
+        candidates = []
+        idx = 0
+        for a in soup.find_all("a", href=True):
+            idx += 1
+            href = a["href"]
+            text = a.get_text(" ", strip=True) or ""
+            full = urljoin(self.driver.current_url, href)
+            if not is_allowed_ir_link(self.driver.current_url, full): 
+                continue
+            low = (text + " " + href).lower()
+            # direct artifact
+            if is_pdfish_url(href) and text_is_quarterly(low):
+                kind = classify_kind(low)
+                score = PREF_KIND_SCORE.get(kind, 0) - idx*0.01
+                candidates.append(("direct", full, text, kind, score))
+                continue
+            # detail page to follow
+            if (("learn more" in low) or ("read more" in low) or text_is_quarterly(low)) and not is_pdfish_url(href):
+                kind = classify_kind(low)
+                score = PREF_KIND_SCORE.get(kind, 0) - idx*0.01 - 5  # slight penalty for follow
+                candidates.append(("follow", full, text, kind, score))
+        # sort by score desc
+        candidates.sort(key=lambda x: x[4], reverse=True)
+        return candidates
+
+    def _harvest_from_detail_page(self, ticker, limit):
+        got = 0
+        inner = BeautifulSoup(self.driver.page_source, "html.parser")
+        for b in inner.find_all("a", href=True):
+            if got >= limit: break
+            href2 = b["href"]; full2 = urljoin(self.driver.current_url, href2)
+            if not is_allowed_ir_link(self.driver.current_url, full2): 
+                continue
+            low = (b.get_text(" ", strip=True) + " " + href2).lower()
+            if is_pdfish_url(href2) and text_is_quarterly(low):
+                t2 = b.get_text(" ", strip=True) or "Quarterly Artifact"
+                if self._download_if_doc(ticker, full2, t2): got += 1
+        # If still nothing, allow any doc-ish artifact on detail page
+        if got == 0:
+            for b in inner.find_all("a", href=True):
+                if got >= limit: break
+                href2 = b["href"]; full2 = urljoin(self.driver.current_url, href2)
+                if not is_allowed_ir_link(self.driver.current_url, full2): 
+                    continue
+                if is_pdfish_url(href2):
+                    t2 = b.get_text(" ", strip=True) or "Report"
+                    if self._download_if_doc(ticker, full2, t2): got += 1
+        return got
+
+    def _sec_filings_route(self, ticker, limit=2):
+        """Navigate to SEC filings page (if present) and download top-most 10‑Q artifacts."""
+        got = 0
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        sec_link = None
+        for a in soup.find_all("a", href=True):
+            t = a.get_text(" ", strip=True).lower()
+            if "sec filing" in t or "sec filings" in t or t == "sec":
+                sec_link = urljoin(self.driver.current_url, a["href"]); break
+        if not sec_link: 
+            return 0
+        try:
+            self.driver.get(sec_link); time.sleep(2); self._accept_cookies(); self._scroll(2)
+            inner = BeautifulSoup(self.driver.page_source, "html.parser")
+            # assume newest rows are first; take first rows that mention 10-Q
+            for row in inner.find_all(["tr","article","li","div"]):
+                if got >= limit: break
+                tx = row.get_text(" ", strip=True).lower()
+                if any(t in tx for t in SEC_10Q_TERMS):
+                    for a in row.find_all("a", href=True):
+                        if got >= limit: break
+                        href = a["href"]; full = urljoin(self.driver.current_url, href)
+                        if is_allowed_ir_link(self.driver.current_url, full) and is_pdfish_url(href):
+                            if self._download_if_doc(ticker, full, a.get_text(" ", strip=True)): got += 1
+            self.driver.back(); time.sleep(1.2)
+        except Exception as e:
+            self._log({"stage":"sec_filings","ticker":ticker,"err":str(e)})
+        return got
+
+    # --------- Per-company nudges (no year logic) ----------
+    def _strategy_amgn(self, ticker):
+        # Try "EARNINGS"/Presentations sections
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        for a in soup.find_all("a", href=True):
+            t = a.get_text(" ", strip=True).lower()
+            if any(k in t for k in ["earnings","presentations","events"]):
+                url = urljoin(self.driver.current_url, a["href"])
+                try:
+                    self.driver.get(url); time.sleep(2); self._accept_cookies(); self._scroll(3)
+                    got = self._generic_grab(ticker, limit=self.per_company)
+                    if got >= 1: return got
+                    self.driver.back(); time.sleep(1)
+                except Exception: continue
+        return 0
+
+    def _strategy_gs(self, ticker):
+        # Home often exposes "Form 10‑Q" tile; click then pick doc
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        for a in soup.find_all("a", href=True):
+            txt = a.get_text(" ", strip=True).lower()
+            if ("form 10-q" in txt or "10-q" in txt):
+                url = urljoin(self.driver.current_url, a["href"])
+                try:
+                    self.driver.get(url); time.sleep(2); self._accept_cookies(); self._scroll(2)
+                    got = self._harvest_from_detail_page(ticker, limit=self.per_company)
+                    if got >= 1: return got
+                    self.driver.back(); time.sleep(1)
+                except Exception: continue
+        return self._generic_grab(ticker, limit=self.per_company)
+
+    def _strategy_mmm(self, ticker):
+        return self._generic_grab(ticker, limit=self.per_company)
+
+    def _strategy_msft(self, ticker):
+        got = self._sec_filings_route(ticker, limit=self.per_company)
+        if got >= 1: return got
+        return self._generic_grab(ticker, limit=self.per_company)
+
+    def _strategy_visa(self, ticker):
+        self._accept_cookies()
+        return self._generic_grab(ticker, limit=self.per_company)
+
+    # ----------------------- Generic page harvesting ---------------------
+    def _generic_grab(self, ticker, limit=2):
+        got = 0
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        candidates = self._collect_ranked_candidates_from_soup(soup)
+        # Iterate candidates by score/position; prioritize direct artifacts first
+        for kind, url, text, _k, _score in candidates:
+            if got >= limit: break
+            if kind == "direct":
+                if self._download_if_doc(ticker, url, text): got += 1
+        # Then follow best "follow" candidates
+        if got < limit:
+            for kind, url, text, _k, _score in candidates:
+                if got >= limit: break
+                if kind != "follow": continue
+                try:
+                    self.driver.get(url); time.sleep(2); self._accept_cookies(); self._scroll(2)
+                    got += self._harvest_from_detail_page(ticker, limit=limit-got)
+                    self.driver.back(); time.sleep(1.2)
+                except Exception as e:
+                    self._log({"stage":"follow_click","ticker":ticker,"url":url,"err":str(e)})
+        # As last resort, SEC filings
+        if got < limit:
+            got += self._sec_filings_route(ticker, limit=limit-got)
+        return got
+
+    # ------------------------------ Main flow ---------------------------
+    def process_company(self, ticker, company, ir_url):
+        print("\n" + "="*80)
+        print(f"{ticker} - {company}")
+        print("="*80)
+        self.stats["processed"] += 1
+
+        if ticker in self.ir_overrides and (not ir_url or "pg" in ticker.lower() or base_domain(urlparse(ir_url).hostname) != base_domain(urlparse(self.ir_overrides[ticker]).hostname)):
+            ir_url = self.ir_overrides[ticker]
+            print(f"  🔧 Using IR override: {ir_url}")
+
+        try:
+            self.driver.get(ir_url); time.sleep(2.5)
+        except Exception as e:
+            print("  ❌ Load error")
+            self.stats["failed"].append(ticker)
+            self._log({"stage":"load","ticker":ticker,"err":str(e)})
+            return 0
+
+        self._accept_cookies()
+        self._scroll(6)
+
+        got = 0
+        if ticker in self.special:
+            try:
+                got = self.special[ticker](ticker)
+            except Exception as e:
+                self._log({"stage":"special","ticker":ticker,"err":str(e)})
+        if got < self.per_company:
+            got += self._generic_grab(ticker, limit=self.per_company-got)
+
+        if got >= 1:
+            self.stats["successful"] += 1
+        else:
+            self.stats["failed"].append(ticker)
+        return got
+
     def close(self):
-        """Enhanced cleanup with memory optimization"""
-        # Close Selenium driver
-        if self.driver:
-            try:
+        try:
+            if self.driver:
                 self.driver.quit()
-                self.driver = None
-            except Exception as e:
-                logger.debug(f"Error closing driver: {e}")
-
-        # Close requests session
-        if hasattr(self, 'session') and self.session:
-            try:
-                self.session.close()
-                self.session = None
-            except Exception as e:
-                logger.debug(f"Error closing session: {e}")
-
-        # Clear large data structures
-        if hasattr(self, 'session_data'):
-            self.session_data = None
-        if hasattr(self, 'stats'):
-            self.stats = None
-
-        # Force garbage collection
-        import gc
-        gc.collect()
-    
-    def download_document_legacy(self, doc_info: Dict, company_dir: Path, ticker: str) -> bool:
-        """Enhanced download with multiple strategies and validation"""
-        try:
-            url = doc_info['url']
-            
-            # Make URL absolute if relative
-            if not url.startswith(('http://', 'https://')):
-                base_url = self.current_ir_url
-                url = urljoin(base_url, url)
-                doc_info['url'] = url  # Update with absolute URL
-            
-            # Generate enhanced filename with scoring
-            doc_type = doc_info.get('type', 'document').replace(' ', '_')
-            score = doc_info.get('score', 0)
-            is_quarterly = doc_info.get('is_quarterly', False)
-
-            # Period string from extracted date or period info
-            period_str = ''
-            if doc_info.get('date'):
-                date_obj = doc_info['date']
-                quarter = ((date_obj.month - 1) // 3) + 1
-                period_str = f"_Q{quarter}_{date_obj.year}"
-            elif doc_info.get('period'):
-                p = doc_info['period']
-                if 'quarter' in p:
-                    period_str = f"_Q{p['quarter']}_{p['year']}"
-                else:
-                    period_str = f"_{p['year']}"
-
-            # Add quality indicators to filename
-            quality_prefix = "HIGH_" if is_quarterly else "REG_"
-            score_str = f"S{score:03d}_"  # Score with leading zeros
-
-            timestamp = datetime.now().strftime('%Y%m%d')
-            extension = '.pdf'  # Default
-            
-            # Check URL for extension
-            for ext in ['.pdf', '.xlsx', '.xls', '.doc', '.docx']:
-                if ext in url.lower():
-                    extension = ext
-                    break
-            
-            filename = f"{ticker}_{quality_prefix}{score_str}{doc_type}{period_str}_{timestamp}{extension}"
-            filepath = company_dir / filename
-            
-            # Skip if exists and valid
-            if filepath.exists():
-                if extension == '.pdf':
-                    if self.validate_pdf(filepath):
-                        logger.info(f"Already exists (valid): {filename}")
-                        doc_info['downloaded'] = True
-                        doc_info['filename'] = filename
-                        return True
-                    else:
-                        logger.warning(f"Existing PDF corrupted, re-downloading: {filename}")
-                        filepath.unlink()  # Delete corrupted file
-                else:
-                    logger.info(f"Already exists: {filename}")
-                    return True
-            
-            logger.info(f"Downloading: {filename} from {url}")
-            
-            # Strategy 1: Direct download with requests (with better headers)
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'application/pdf,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Referer': self.current_ir_url
-            }
-            
-            # Use session to maintain cookies
-            session = requests.Session()
-            session.headers.update(headers)
-            
-            # First, try with the session
-            response = session.get(url, timeout=30, verify=False, allow_redirects=True)
-            response.raise_for_status()
-            
-            # Check if response is actually a file
-            content_type = response.headers.get('content-type', '').lower()
-            
-            # Check if it's an HTML page (not a file)
-            if 'text/html' in content_type and extension == '.pdf':
-                logger.warning(f"Got HTML instead of PDF, trying Selenium: {filename}")
-                
-                # Strategy 2: Use Selenium to handle JavaScript
-                if self.download_with_selenium(url, filepath):
-                    if extension == '.pdf' and self.validate_pdf(filepath):
-                        file_size_mb = filepath.stat().st_size / (1024 * 1024)
-                        logger.info(f"Downloaded via Selenium: {filename} ({file_size_mb:.2f} MB)")
-                        doc_info['downloaded'] = True
-                        doc_info['filename'] = filename
-                        doc_info['size_mb'] = file_size_mb
-                        doc_info['method'] = 'selenium'
-                        return True
-                    else:
-                        logger.error(f"Selenium download failed validation: {filename}")
-                        if filepath.exists():
-                            filepath.unlink()
-                        return False
-                            
-                # Strategy 3: Try to find actual download link in the page
-                self.driver.get(url)
-                time.sleep(2)
-                
-                # Look for download buttons/links
-                download_selectors = [
-                    "a[download]",
-                    "a[href*='.pdf']",
-                    "a:contains('Download')",
-                    "button:contains('Download')",
-                    "a.download-link",
-                    "iframe"  # Sometimes PDFs are in iframes
-                ]
-                
-                for selector in download_selectors:
-                    try:
-                        elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                        for elem in elements:
-                            href = elem.get_attribute('href') or elem.get_attribute('src')
-                            if href and ('.pdf' in href.lower() or 'download' in href.lower()):
-                                logger.info(f"Found actual download link: {href}")
-                                # Recursive call with the actual download URL
-                                doc_info['url'] = href
-                                return self.download_document(doc_info, company_dir, ticker)
-                    except:
-                        continue
-                
-                logger.error(f"Could not find download link for: {filename}")
-                return False
-                
-            else:
-                # Save the file content
-                with open(filepath, 'wb') as f:
-                    f.write(response.content)
-                
-                # Validate if PDF
-                if extension == '.pdf':
-                    if not self.validate_pdf(filepath):
-                        logger.error(f"Downloaded PDF is corrupted: {filename}")
-                        
-                        # Check if content is actually HTML
-                        try:
-                            with open(filepath, 'r', encoding='utf-8') as f:
-                                content = f.read(1000)
-                                if '<html' in content.lower() or '<!doctype' in content.lower():
-                                    logger.error(f"Downloaded HTML instead of PDF")
-                                    filepath.unlink()
-                                    
-                                    # Try Selenium approach
-                                    logger.info(f"Retrying with Selenium: {filename}")
-                                    if self.download_with_selenium(url, filepath):
-                                        if self.validate_pdf(filepath):
-                                            file_size_mb = filepath.stat().st_size / (1024 * 1024)
-                                            logger.info(f"Successfully downloaded via Selenium: {filename} ({file_size_mb:.2f} MB)")
-                                            doc_info['downloaded'] = True
-                                            doc_info['filename'] = filename
-                                            doc_info['size_mb'] = file_size_mb
-                                            doc_info['method'] = 'selenium-retry'
-                                            return True
-                        except:
-                            pass
-                        
-                        if filepath.exists():
-                            filepath.unlink()
-                        return False
-                
-                file_size_mb = filepath.stat().st_size / (1024 * 1024)
-                
-                # Check file size
-                if file_size_mb < 0.01:  # Less than 10KB
-                    logger.warning(f"File unusually small: {filename} ({file_size_mb:.2f} MB)")
-                    filepath.unlink()
-                    return False
-                
-                logger.info(f"Downloaded successfully: {filename} ({file_size_mb:.2f} MB)")
-                doc_info['downloaded'] = True
-                doc_info['filename'] = filename
-                doc_info['size_mb'] = file_size_mb
-                doc_info['method'] = 'requests'
-                
-                return True
-                
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Download request failed for {url}: {e}")
-            doc_info['downloaded'] = False
-            doc_info['error'] = str(e)
-            return False
-            
+                print(f"Chrome driver closed for session {self.session_id}")
         except Exception as e:
-            logger.error(f"Download failed: {e}")
-            doc_info['downloaded'] = False
-            doc_info['error'] = str(e)
-            return False
-    
-    def process_company(self, company_data: Dict) -> Dict:
-        """Process a single company with enhanced strategy"""
-        ticker = company_data['ticker']
-        ir_url = company_data['ir_url']
-        company_name = company_data.get('company_name', ticker)
+            print(f"Error closing driver for session {self.session_id}: {e}")
 
-        return self._process_company_enhanced(ticker, company_name, ir_url)
-    
-    def run(self):
-        """Main execution"""
-        # Load IR results
-        with open(self.input_file, 'r') as f:
-            data = json.load(f)
-            companies = [c for c in data.get('companies_processed', []) if c.get('ir_page_found')]
-        
-        # Validate Dow 30 companies if enabled
-        if self.validate_dow30:
-            companies, validation = self.validate_dow30_companies(companies)
-            
-            # Ask user if they want to continue with only valid companies
-            if validation['invalid_companies'] or validation['removed_companies']:
-                response = input("\n⚠ Found non-Dow 30 companies. Process only valid Dow 30? (y/n): ")
-                if response.lower() != 'y':
-                    print("Exiting...")
-                    return
-        
-        # Setup driver
-        self.setup_driver()
-        
+        # Clean up temporary Chrome user data directory
         try:
-            print(f"\n{'='*60}")
-            print("ENHANCED DOW 30 EARNINGS DOCUMENT DOWNLOADER")
-            print(f"{'='*60}\n")
-            print(f"Processing {len(companies)} companies (All valid Dow 30)")
-            print(f"Target periods: {', '.join([f'Q{p['quarter']} {p['year']}' for p in self.target_periods[:3] if 'quarter' in p])}\n")
-            
-            # Process each company with memory optimization
-            for i, company in enumerate(companies, 1):
-                print(f"\n[{i}/{len(companies)}] {company['ticker']} - {company.get('company_name', company['ticker'])}")
-                print("-" * 40)
-
-                result = self.process_company(company)
-                self.session_data['companies'].append(result)
-
-                print(f"Found: {result['documents_found']} documents")
-                print(f"Downloaded: {result['documents_downloaded']} documents")
-
-                # Memory cleanup after each company
-                if 'documents' in result:
-                    # Keep only essential data
-                    result['documents'] = [{
-                        'url': doc.get('url', ''),
-                        'filename': doc.get('filename', ''),
-                        'score': doc.get('score', 0),
-                        'downloaded': doc.get('downloaded', False)
-                    } for doc in result['documents'] if doc.get('downloaded')]
-
-                # Optimized rate limiting
-                time.sleep(2)
-
-                # Restart driver and force cleanup every 8 companies
-                if i % 8 == 0:
-                    logger.info("Restarting driver and cleaning memory...")
-                    self.setup_driver()
-
-                    # Force garbage collection
-                    import gc
-                    gc.collect()
-
-            # Generate enhanced final summary
-            self._generate_final_summary()
-
-            # Save results with memory optimization
-            self.save_results()
-
-        except KeyboardInterrupt:
-            logger.info("Process interrupted by user")
+            import shutil
+            import glob
+            temp_dirs = glob.glob(f"/tmp/chrome_session_{self.session_id}_*")
+            for temp_dir in temp_dirs:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                print(f"Cleaned up temp directory: {temp_dir}")
         except Exception as e:
-            logger.error(f"Fatal error in main process: {e}")
-        finally:
-            self.close()
-
-            # Final memory cleanup
-            import gc
-            gc.collect()
-    
-    def save_results(self):
-        """Save download results"""
-        # Save JSON log
-        log_file = self.output_dir / "dow30_download_log.json"
-        with open(log_file, 'w') as f:
-            json.dump(self.session_data, f, indent=2)
-        
-        # Create summary
-        summary_file = self.output_dir / "dow30_summary.txt"
-        with open(summary_file, 'w') as f:
-            f.write("DOW 30 EARNINGS DOWNLOAD SUMMARY\n")
-            f.write("=" * 60 + "\n\n")
-            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-            
-            # Dow 30 Validation Summary
-            if self.session_data.get('dow30_validation'):
-                val = self.session_data['dow30_validation']
-                f.write("DOW 30 VALIDATION:\n")
-                f.write("-" * 40 + "\n")
-                f.write(f"Valid Dow 30 companies: {len(val['valid_dow30'])}/30\n")
-                if val['missing_dow30']:
-                    f.write(f"Missing companies: {', '.join(val['missing_dow30'])}\n")
-                if val['removed_companies']:
-                    removed = ', '.join([r['ticker'] for r in val['removed_companies']])
-                    f.write(f"Recently removed: {removed}\n")
-                f.write("\n")
-            
-            # Download Summary
-            total_found = sum(c['documents_found'] for c in self.session_data['companies'])
-            total_downloaded = sum(c['documents_downloaded'] for c in self.session_data['companies'])
-            
-            f.write("DOWNLOAD STATISTICS:\n")
-            f.write("-" * 40 + "\n")
-            f.write(f"Companies processed: {len(self.session_data['companies'])}\n")
-            f.write(f"Total documents found: {total_found}\n")
-            f.write(f"Total documents downloaded: {total_downloaded}\n\n")
-            
-            f.write("BY COMPANY:\n")
-            f.write("-" * 40 + "\n")
-            
-            for company in sorted(self.session_data['companies'], key=lambda x: x['ticker']):
-                dow_status = "✓" if company.get('is_dow30') else "✗"
-                f.write(f"\n{dow_status} {company['ticker']}: {company['documents_downloaded']}/{company['documents_found']} documents\n")
-                for doc in company['documents']:
-                    if doc.get('downloaded'):
-                        f.write(f"  ✓ {doc.get('filename', 'Unknown')}\n")
-        
-        print(f"\nResults saved to {self.output_dir}")
-        print(f"  - JSON log: dow30_download_log.json")
-        print(f"  - Summary: dow30_summary.txt")
-
+            print(f"Error cleaning up temp directories for session {self.session_id}: {e}")
 
 def main():
-    """Main entry point with enhanced Dow 30 validation"""
     import argparse
 
-    parser = argparse.ArgumentParser(description='Enhanced Dow 30 quarterly earnings documents downloader')
-    parser.add_argument('--input', default='output/ir_finder_results.json',
-                       help='Input JSON file with IR pages')
-    parser.add_argument('--output', default='data/raw',
-                       help='Output directory for downloads')
-    parser.add_argument('--no-validation', action='store_true',
-                       help='Skip Dow 30 validation')
-    parser.add_argument('--show-browser', action='store_true',
-                       help='Show browser window (not headless)')
+    parser = argparse.ArgumentParser(description="Download quarterly reports from IR pages")
+    parser.add_argument("--json", default="output/ir_finder_results.json",
+                       help="Path to JSON file with IR page data")
+    parser.add_argument("--output", default="quarterly_reports",
+                       help="Output directory for downloads")
+    parser.add_argument("--companies", nargs="+",
+                       help="Specific company tickers to process (default: all)")
+    parser.add_argument("--per-company", type=int, default=2,
+                       help="Max files to download per company")
 
     args = parser.parse_args()
 
-    downloader = EnhancedEarningsDownloader(
-        input_file=args.input,
-        output_dir=args.output,
-        headless=not args.show_browser,
-        validate_dow30=not args.no_validation
-    )
+    print("="*80)
+    print("AGGRESSIVE QUARTERLY REPORT DOWNLOADER (v3 - JSON input)")
+    print("="*80)
 
-    downloader.run()
-
-
-def main_advanced_standalone():
-    """Standalone main for advanced quarterly downloader (like IR_extractor)"""
-    # Check for required input file
-    input_file = 'output/ir_finder_results.json'
-    if not os.path.exists(input_file):
-        print(f"❌ {input_file} not found")
-        print("Please run the IR finder first to generate company IR pages.")
+    # Load JSON data
+    if not os.path.exists(args.json):
+        print(f"❌ JSON file not found: {args.json}")
         return
 
-    # Load and filter companies
-    with open(input_file, 'r') as f:
+    with open(args.json, 'r') as f:
         data = json.load(f)
-        companies = [c for c in data.get('companies_processed', []) if c.get('ir_page_found')]
+
+    companies = data.get("companies_processed", [])
+    if args.companies:
+        # Filter to specific companies
+        companies = [c for c in companies if c["ticker"] in args.companies]
 
     if not companies:
-        print("❌ No companies with IR pages found in the input file.")
+        print("❌ No companies found to process")
         return
 
-    print(f"\n🚀 ENHANCED QUARTERLY REPORT DOWNLOADER")
-    print(f"📈 Processing {len(companies)} companies with advanced Selenium")
-    print(f"🎯 Goal: 2+ quarterly files per company")
-    print(f"{'='*80}\n")
+    print(f"🚀 Processing {len(companies)} companies...")
 
-    # Initialize enhanced downloader
-    downloader = EnhancedEarningsDownloader(
-        input_file=input_file,
-        output_dir='quarterly_reports',
-        headless=True,
-        validate_dow30=True
-    )
+    dl = AggressiveQuarterlyDownloaderV3(outdir=args.output, per_company=args.per_company)
+    start = time.time()
 
     try:
-        downloader.run()
-    except KeyboardInterrupt:
-        print("\n⚠ Download interrupted by user")
-        downloader.close()
-    except Exception as e:
-        print(f"\n❌ Download failed: {e}")
-        downloader.close()
-    finally:
-        downloader.close()
+        for company in companies:
+            ticker = company.get("ticker", "").strip()
+            company_name = company.get("company_name", "").strip() or ticker
+            ir_url = company.get("ir_url", "").strip() if company.get("ir_page_found") else None
 
+            # Apply IR overrides if needed
+            if not ir_url and ticker in dl.ir_overrides:
+                ir_url = dl.ir_overrides[ticker]
+
+            if not ir_url:
+                print(f"\n{ticker} - {company_name}\n  ⚠️ Missing IR URL; skipping")
+                dl.stats["failed"].append(ticker)
+                continue
+
+            got = dl.process_company(ticker, company_name, ir_url)
+            print(f"  → Downloaded {got} files")
+            time.sleep(1.0)
+
+        elapsed = time.time() - start
+        print("\n" + "="*80)
+        print("FINAL SUMMARY")
+        print("="*80)
+        print(f"⏱️  Total time: {elapsed/60:.1f} minutes")
+        print(f"✅ Successful: {dl.stats['successful']}/{dl.stats['processed']}")
+        print(f"📊 Total files: {dl.stats['total_files']}")
+        if dl.stats["failed"]:
+            print("\nFAILED Tickers: " + ", ".join([t for t in dl.stats["failed"] if t]))
+        print(f"\nArtifacts saved under: {dl.outdir}/TICKER/*.pdf|.pptx|.ppt")
+        print(f"Debug log: {dl.logdir}/debug.jsonl")
+
+        # Save summary to JSON
+        summary = {
+            "timestamp": datetime.now().isoformat(),
+            "total_companies": len(companies),
+            "successful_downloads": dl.stats['successful'],
+            "total_files": dl.stats['total_files'],
+            "failed_tickers": dl.stats['failed'],
+            "processing_time_minutes": round(elapsed/60, 2)
+        }
+
+        summary_file = os.path.join(args.output, "download_summary.json")
+        with open(summary_file, 'w') as f:
+            json.dump(summary, f, indent=2)
+        print(f"📊 Summary saved to {summary_file}")
+
+    finally:
+        dl.close()
 
 if __name__ == "__main__":
-    # Check if we want to run as standalone (like IR_extractor)
-    if len(sys.argv) == 1:
-        main_advanced_standalone()
-    else:
-        main()
+    main()
 </file>
 
 <file path="IR_extractor.py">
@@ -3628,320 +2516,9 @@ if __name__ == "__main__":
     main()
 </file>
 
-<file path="README.md">
-# Automated-Dow-30-Earnings-Intelligence-Pipeline
-</file>
-
-<file path="requirements.txt">
-# Core Web Scraping
-selenium>=4.15.0
-webdriver-manager==4.0.1  # Auto-manages ChromeDriver
-requests>=2.31.0
-beautifulsoup4==4.12.2
-lxml>=4.9.3  # Parser for BeautifulSoup
-
-# Document Processing
-PyPDF2==3.0.1  # PDF parsing
-openpyxl==3.1.2  # Excel file handling
-pandas==2.2.0  # Data manipulation
-
-# AWS Integration
-boto3>=1.29.7  # AWS S3 uploads
-botocore>=1.32.7  # AWS core
-
-# Airflow (optional - comment out if not using Airflow)
-# apache-airflow==2.7.3
-# apache-airflow-providers-amazon==8.9.0
-
-# Utilities
-python-dotenv==1.0.0  # Environment variables
-urllib3==2.1.0  # URL handling
-
-# Development/Testing (optional)
-pytest==7.4.3
-pytest-timeout==2.2.0
-black==23.11.0  # Code formatting
-flake8==6.1.0  # Linting
-</file>
-
-<file path="s3_uploader.py">
-import os
-import boto3
-import logging
-from botocore.exceptions import ClientError, NoCredentialsError
-from pathlib import Path
-from typing import Optional, List
-import mimetypes
-from datetime import datetime
-
-class S3Uploader:
-    def __init__(self, bucket_name: str, aws_access_key_id: Optional[str] = None,
-                 aws_secret_access_key: Optional[str] = None, region_name: str = 'us-east-1'):
-        """
-        Initialize S3 uploader
-
-        Args:
-            bucket_name: Name of the S3 bucket
-            aws_access_key_id: AWS access key (optional, can use env vars or IAM roles)
-            aws_secret_access_key: AWS secret key (optional, can use env vars or IAM roles)
-            region_name: AWS region name
-        """
-        self.bucket_name = bucket_name
-        self.region_name = region_name
-
-        # Setup logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
-        self.logger = logging.getLogger(__name__)
-
-        # Initialize S3 client
-        try:
-            if aws_access_key_id and aws_secret_access_key:
-                self.s3_client = boto3.client(
-                    's3',
-                    aws_access_key_id=aws_access_key_id,
-                    aws_secret_access_key=aws_secret_access_key,
-                    region_name=region_name
-                )
-            else:
-                # Use default credentials (env vars, IAM roles, or AWS CLI config)
-                self.s3_client = boto3.client('s3', region_name=region_name)
-
-            self.logger.info(f"S3 client initialized for bucket: {bucket_name}")
-
-        except Exception as e:
-            self.logger.error(f"Failed to initialize S3 client: {e}")
-            raise
-
-    def upload_file(self, local_file_path: str, s3_key: Optional[str] = None) -> bool:
-        """
-        Upload a single file to S3
-
-        Args:
-            local_file_path: Path to the local file
-            s3_key: S3 object key (path in bucket). If None, uses filename
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        try:
-            # Convert to Path object for easier manipulation
-            file_path = Path(local_file_path)
-
-            if not file_path.exists():
-                self.logger.error(f"File not found: {local_file_path}")
-                return False
-
-            # Generate S3 key if not provided
-            if s3_key is None:
-                s3_key = file_path.name
-
-            # Get file content type
-            content_type, _ = mimetypes.guess_type(local_file_path)
-            if content_type is None:
-                content_type = 'binary/octet-stream'
-
-            # Upload file
-            extra_args = {'ContentType': content_type}
-
-            self.s3_client.upload_file(
-                str(file_path),
-                self.bucket_name,
-                s3_key,
-                ExtraArgs=extra_args
-            )
-
-            self.logger.info(f"Successfully uploaded: {local_file_path} -> s3://{self.bucket_name}/{s3_key}")
-            return True
-
-        except FileNotFoundError:
-            self.logger.error(f"File not found: {local_file_path}")
-            return False
-        except NoCredentialsError:
-            self.logger.error("AWS credentials not found")
-            return False
-        except ClientError as e:
-            self.logger.error(f"AWS error uploading {local_file_path}: {e}")
-            return False
-        except Exception as e:
-            self.logger.error(f"Unexpected error uploading {local_file_path}: {e}")
-            return False
-
-    def upload_directory(self, local_directory: str, s3_prefix: str = "",
-                        preserve_structure: bool = True) -> dict:
-        """
-        Upload all files in a directory to S3
-
-        Args:
-            local_directory: Path to the local directory
-            s3_prefix: Prefix to add to S3 keys (like a folder path)
-            preserve_structure: Whether to preserve directory structure in S3
-
-        Returns:
-            dict: Summary of upload results
-        """
-        results = {
-            'total_files': 0,
-            'successful_uploads': 0,
-            'failed_uploads': 0,
-            'uploaded_files': [],
-            'failed_files': []
-        }
-
-        try:
-            directory_path = Path(local_directory)
-
-            if not directory_path.exists():
-                self.logger.error(f"Directory not found: {local_directory}")
-                return results
-
-            if not directory_path.is_dir():
-                self.logger.error(f"Path is not a directory: {local_directory}")
-                return results
-
-            # Get all files recursively
-            all_files = []
-            for file_path in directory_path.rglob('*'):
-                if file_path.is_file():
-                    all_files.append(file_path)
-
-            results['total_files'] = len(all_files)
-            self.logger.info(f"Found {len(all_files)} files to upload from {local_directory}")
-
-            for file_path in all_files:
-                if preserve_structure:
-                    # Maintain directory structure
-                    relative_path = file_path.relative_to(directory_path)
-                    s3_key = f"{s3_prefix}/{relative_path}" if s3_prefix else str(relative_path)
-                else:
-                    # Flat structure - just filename
-                    s3_key = f"{s3_prefix}/{file_path.name}" if s3_prefix else file_path.name
-
-                # Replace backslashes with forward slashes for S3
-                s3_key = s3_key.replace('\\', '/')
-
-                if self.upload_file(str(file_path), s3_key):
-                    results['successful_uploads'] += 1
-                    results['uploaded_files'].append({
-                        'local_path': str(file_path),
-                        's3_key': s3_key,
-                        'size_bytes': file_path.stat().st_size
-                    })
-                else:
-                    results['failed_uploads'] += 1
-                    results['failed_files'].append(str(file_path))
-
-            self.logger.info(f"Upload complete: {results['successful_uploads']}/{results['total_files']} files uploaded successfully")
-
-        except Exception as e:
-            self.logger.error(f"Error uploading directory {local_directory}: {e}")
-
-        return results
-
-    def list_bucket_objects(self, prefix: str = "") -> List[str]:
-        """
-        List objects in the S3 bucket
-
-        Args:
-            prefix: Filter objects by prefix
-
-        Returns:
-            List[str]: List of object keys
-        """
-        try:
-            objects = []
-            paginator = self.s3_client.get_paginator('list_objects_v2')
-
-            for page in paginator.paginate(Bucket=self.bucket_name, Prefix=prefix):
-                if 'Contents' in page:
-                    for obj in page['Contents']:
-                        objects.append(obj['Key'])
-
-            return objects
-
-        except Exception as e:
-            self.logger.error(f"Error listing bucket objects: {e}")
-            return []
-
-
-def main():
-    """
-    Main function to upload files from downloads directory to S3
-    """
-    # Configuration - modify these values as needed
-    BUCKET_NAME = "your-bucket-name"  # Replace with your actual bucket name
-    DOWNLOADS_DIR = "downloads_2025"   # Directory containing files to upload
-    S3_PREFIX = f"dow30-earnings/{datetime.now().strftime('%Y-%m-%d')}"  # S3 folder structure
-
-    # AWS credentials (optional - can use environment variables or IAM roles)
-    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-    AWS_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
-
-    try:
-        # Initialize uploader
-        uploader = S3Uploader(
-            bucket_name=BUCKET_NAME,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-            region_name=AWS_REGION
-        )
-
-        # Upload all files from downloads directory
-        print(f"Starting upload of files from {DOWNLOADS_DIR} to S3 bucket {BUCKET_NAME}")
-        print(f"S3 prefix: {S3_PREFIX}")
-
-        results = uploader.upload_directory(
-            local_directory=DOWNLOADS_DIR,
-            s3_prefix=S3_PREFIX,
-            preserve_structure=True
-        )
-
-        # Print summary
-        print("\n" + "="*50)
-        print("UPLOAD SUMMARY")
-        print("="*50)
-        print(f"Total files found: {results['total_files']}")
-        print(f"Successfully uploaded: {results['successful_uploads']}")
-        print(f"Failed uploads: {results['failed_uploads']}")
-
-        if results['failed_files']:
-            print(f"\nFailed files:")
-            for failed_file in results['failed_files']:
-                print(f"  - {failed_file}")
-
-        # Calculate total size uploaded
-        total_size = sum(file_info['size_bytes'] for file_info in results['uploaded_files'])
-        total_size_mb = total_size / (1024 * 1024)
-        print(f"\nTotal data uploaded: {total_size_mb:.2f} MB")
-
-        print(f"\nAll uploaded files are available at: s3://{BUCKET_NAME}/{S3_PREFIX}/")
-
-    except Exception as e:
-        print(f"Error: {e}")
-        return 1
-
-    return 0
-
-
-if __name__ == "__main__":
-    exit(main())
-</file>
-
-<file path=".env.example">
-# AWS S3 Configuration
-AWS_ACCESS_KEY_ID=your_access_key_here
-AWS_SECRET_ACCESS_KEY=your_secret_key_here
-AWS_DEFAULT_REGION=us-east-1
-S3_BUCKET_NAME=your-bucket-name
-
-# Optional: Custom S3 prefix for organizing files
-S3_PREFIX=dow30-earnings
-
-# Local directories
-DOWNLOADS_DIR=Data
+<file path=".repomixignore">
+./Data/Raw/
+./Data/Parsed/
 </file>
 
 <file path=".gitignore">
@@ -3983,11 +2560,6 @@ Thumbs.db
 
 # Logs
 *.log
-</file>
-
-<file path=".repomixignore">
-./Data/Raw/
-./Data/Parsed/
 </file>
 
 </files>
