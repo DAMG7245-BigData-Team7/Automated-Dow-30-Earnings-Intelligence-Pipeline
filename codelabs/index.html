@@ -1,0 +1,108 @@
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <meta name="theme-color" content="#4F7DC9">
+  <meta charset="UTF-8">
+  <title></title>
+  <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source+Code+Pro:400|Roboto:400,300,400italic,500,700|Roboto+Mono">
+  <link rel="stylesheet" href="//fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://storage.googleapis.com/claat-public/codelab-elements.css">
+  <style>
+    .success {
+      color: #1e8e3e;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <google-codelab-analytics gaid="UA-49880327-14" ga4id=""></google-codelab-analytics>
+  <google-codelab codelab-gaid=""
+                  codelab-ga4id=""
+                  id=""
+                  title=""
+                  environment="web"
+                  feedback-link="">
+    
+      <google-codelab-step label="Dow 30 Earnings Intelligence Pipeline - Project Reflection" duration="0">
+        <p class="image-container"><img style="width: 305.50px" src="img/c8cde7f4c5555eff.png"></p>
+<h2 is-upgraded><strong>What Worked Well</strong></h2>
+<h3 is-upgraded><strong>1. Multi-Strategy IR Page Discovery</strong></h3>
+<p>The IR extractor achieved 100% success rate (30/30 companies) in finding investor relations pages through a comprehensive multi-strategy approach. The system intelligently tried subdomain patterns first (successful for 29 companies), then fell back to link navigation when needed. This redundancy ensured no manual intervention was required, with verification scores averaging above 75 for most companies.</p>
+<h3 is-upgraded><strong>2. Robust Web Scraping Architecture</strong></h3>
+<p>The file downloader&#39;s aggressive approach with multiple fallback strategies proved highly effective. The system handled various website structures by:</p>
+<ul>
+<li>Implementing comprehensive cookie consent handling for OneTrust, TrustArc, and Quantcast frameworks</li>
+<li>Using scroll-based lazy loading to capture dynamically loaded content</li>
+<li>Following &#34;Learn More/Read More&#34; detail pages to access nested documents</li>
+<li>Prioritizing document types intelligently (10-Q &gt; press releases &gt; presentations &gt; supplements)</li>
+</ul>
+<h3 is-upgraded><strong>3. Efficient Resource Management</strong></h3>
+<p>The pipeline&#39;s use of ProcessPoolExecutor for parallel processing within individual stages (particularly in the Docling parser with 3 concurrent processes) balanced performance with system stability. The sequential DAG structure in Airflow ensured dependencies were properly managed while allowing for parallel execution where beneficial.</p>
+<h3 is-upgraded><strong>4. Cloud Storage Integration</strong></h3>
+<p>The S3 upload component successfully organized 1,146 files (53 raw, 1,093 parsed) totaling 178MB across properly structured directories. The dual-path storage strategy (raw-documents/ and earnings-documents/) maintained traceability while optimizing for different access patterns.</p>
+<h2 is-upgraded><strong>Challenges Faced</strong></h2>
+<h3 is-upgraded><strong>1. Website Heterogeneity</strong></h3>
+<p>Each company&#39;s IR site required unique handling strategies. Companies like AMGN, Goldman Sachs, Microsoft, and Visa needed specialized navigation logic. While the special strategies worked, maintaining these company-specific implementations could become a scalability challenge as the system expands beyond the Dow 30.</p>
+<h3 is-upgraded><strong>2. Dynamic Content and JavaScript-Heavy Sites</strong></h3>
+<p>Several IR pages relied heavily on client-side rendering, requiring Selenium with careful timing management. The balance between wait times (2-3 seconds per page load) and reliability meant the full pipeline took considerable time to complete. Some sites required multiple scroll cycles to trigger lazy-loaded content.</p>
+<h3 is-upgraded><strong>3. Document Extraction Precision</strong></h3>
+<p>Without hardcoded years, the system had to rely on heuristics to identify the latest quarterly reports. While the ranking system (based on document type, position, and keyword matching) worked well, there&#39;s inherent uncertainty in whether the &#34;latest&#34; document found is always the most recent quarterly report, especially for companies that organize content unconventionally.</p>
+<h3 is-upgraded><strong>4. Resource Constraints</strong></h3>
+<p>The Docling parser&#39;s computational intensity became apparent when processing larger PDFs. The decision to process only the smallest PDF per company was a pragmatic compromise but meant potentially missing richer data in larger documents. The parsing phase alone generated over 1,000 derivative files from 53 source documents.</p>
+<h2 is-upgraded><strong>How to Extend This Project Further</strong></h2>
+<h3 is-upgraded><strong>1. Enhanced Document Intelligence</strong></h3>
+<ul>
+<li><strong>Implement date extraction</strong>: Parse document contents to extract and validate report dates, ensuring true recency</li>
+<li><strong>Add OCR capabilities</strong>: Enable force_ocr in Docling for scanned documents</li>
+<li><strong>Expand document types</strong>: Include Excel files and HTML reports that some companies prefer</li>
+<li><strong>Implement document deduplication</strong>: Use content hashing to avoid reprocessing identical files</li>
+</ul>
+<h3 is-upgraded><strong>2. Scalability Improvements</strong></h3>
+<ul>
+<li><strong>Implement Airflow pools</strong>: Better manage concurrent company processing with resource pools</li>
+<li><strong>Add retry logic with exponential backoff</strong>: Make the pipeline more resilient to temporary failures</li>
+<li><strong>Create a company metadata service</strong>: Centralize company-specific strategies in a configuration system</li>
+<li><strong>Implement incremental processing</strong>: Track processed documents to avoid redundant downloads</li>
+</ul>
+<h3 is-upgraded><strong>3. Data Quality and Validation</strong></h3>
+<ul>
+<li><strong>Add data quality checks</strong>: Implement Great Expectations or similar framework to validate extracted data</li>
+<li><strong>Create automated testing</strong>: Build test suites for each company&#39;s IR page structure</li>
+<li><strong>Implement monitoring and alerting</strong>: Set up alerts for extraction failures or data anomalies</li>
+<li><strong>Add manual review interface</strong>: Create a simple UI for human validation of ambiguous extractions</li>
+</ul>
+<h3 is-upgraded><strong>4. Advanced Analytics Integration</strong></h3>
+<ul>
+<li><strong>Connect to downstream analytics</strong>: Feed parsed data into financial analysis pipelines</li>
+<li><strong>Implement NLP processing</strong>: Extract key financial metrics and sentiment from earnings calls</li>
+<li><strong>Create a comparison engine</strong>: Build tools to track quarter-over-quarter changes</li>
+<li><strong>Add competitive intelligence</strong>: Expand to industry peers beyond the Dow 30</li>
+</ul>
+<h3 is-upgraded><strong>5. Infrastructure Enhancements</strong></h3>
+<ul>
+<li><strong>Containerize the solution</strong>: Package each component in Docker for better portability</li>
+<li><strong>Implement distributed processing</strong>: Use Celery or Ray for true distributed execution</li>
+<li><strong>Add caching layer</strong>: Implement Redis for caching IR page structures and document metadata</li>
+<li><strong>Create API endpoints</strong>: Expose the pipeline&#39;s capabilities through a REST API</li>
+</ul>
+<h2 is-upgraded><strong>Conclusion</strong></h2>
+<p>This project successfully automated a complex, multi-stage process that would typically require hours of manual analyst work. The 100% success rate in IR page discovery and successful processing of companies demonstrates the robustness of the approach. While challenges remain around handling website heterogeneity and ensuring document currency, the modular architecture provides a solid foundation for future enhancements. The pipeline&#39;s ability to adapt to different website structures without hardcoding makes it particularly valuable for scaling to additional companies beyond the Dow 30.</p>
+
+
+      </google-codelab-step>
+    
+  </google-codelab>
+
+  <script src="https://storage.googleapis.com/claat-public/native-shim.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/custom-elements.min.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/prettify.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/codelab-elements.js"></script>
+  <script src="//support.google.com/inapp/api.js"></script>
+
+</body>
+</html>
