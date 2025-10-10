@@ -52,11 +52,18 @@ docling_parser_task = BashOperator(
     dag=dag,
 )
 
+upload_s3_task = BashOperator(
+    task_id='upload_s3',
+    bash_command=f'cd "{project_root}" && python3 s3_upload.py --bucket doc-dow-30-2025 --parsed-root data/parsed --ticker AXP'
+)
+
 end_task = BashOperator(
     task_id='end_pipeline',
     bash_command='echo "DOW 30 Earnings Intelligence Pipeline completed successfully!"',
     dag=dag,
 )
 
+
+
 # Define task dependencies
-start_task >> ir_extractor_task >> file_downloader_task >> docling_parser_task >> end_task
+start_task >> ir_extractor_task >> file_downloader_task >> docling_parser_task >> upload_s3_task >> end_task

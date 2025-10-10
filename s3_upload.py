@@ -1,18 +1,34 @@
 #!/usr/bin/env python3
 """
-S3 Uploader with PostgreSQL RDS Integration
--------------------------------------------
-Uploads parsed documents to AWS S3 and logs metadata to PostgreSQL RDS
+Unified S3 Uploader - Raw Downloads + Parsed Documents
+------------------------------------------------------
+Uploads both raw PDFs and parsed documents to S3 with RDS metadata logging
+
+S3 Structure:
+  raw-documents/           <- Raw PDFs from downloads
+  └── TICKER/
+      └── *.pdf
+  
+  earnings-documents/      <- Parsed content
+  └── TICKER/
+      ├── images/
+      ├── text/
+      ├── json/
+      ├── markdown/
+      └── tables/
 
 Usage:
-    # Upload all with database logging
-    python s3_upload.py --bucket your-bucket --parsed-root data/parsed
+    # Upload both raw and parsed
+    python s3_upload_unified.py --bucket doc-dow-30-2025
     
-    # Upload specific ticker
-    python s3_upload.py --bucket your-bucket --parsed-root data/parsed --ticker AXP
+    # Upload only raw PDFs
+    python s3_upload_unified.py --bucket doc-dow-30-2025 --mode raw
     
-    # Upload without database
-    python s3_upload.py --bucket your-bucket --parsed-root data/parsed --no-db
+    # Upload only parsed
+    python s3_upload_unified.py --bucket doc-dow-30-2025 --mode parsed
+    
+    # Specific ticker
+    python s3_upload_unified.py --bucket doc-dow-30-2025 --ticker AXP
 """
 
 import os
@@ -29,7 +45,7 @@ import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from tqdm import tqdm
 
-# Database imports (optional)
+# Database imports
 try:
     import psycopg2
     from dotenv import load_dotenv
@@ -43,17 +59,17 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger(_name_)
+logger = logging.getLogger(__name__)
 
 
 class DatabaseLogger:
     """PostgreSQL logger for document metadata"""
     
-    def _init_(self):
+    def __init__(self):
         """Initialize database connection from .env file"""
         if not DB_AVAILABLE:
             self.connection = None
-            logger.warning("Database logging disabled (libraries not installed)")
+            logger.warning("Database logging disabled")
             return
         
         self.host = os.getenv('DB_HOST')
@@ -79,7 +95,7 @@ class DatabaseLogger:
             )
             logger.info("✓ Database connection established")
         except Exception as e:
-            logger.warning(f"Database connection failed: {e}. Continuing without DB.")
+            logger.warning(f"Database connection failed: {e}")
             self.connection = None
     
     def log_document(self, metadata: Dict) -> bool:
@@ -136,36 +152,28 @@ class DatabaseLogger:
             logger.info("Database connection closed")
 
 
-class S3DocumentUploader:
-    """Upload parsed earnings documents to S3 with organized structure"""
+class UnifiedS3Uploader:
+    """Upload both raw downloads and parsed documents to S3"""
     
-    def _init_(self, 
+    def __init__(self, 
                  bucket_name: str,
+                 downloads_root: str = "data/raw",
                  parsed_root: str = "data/parsed",
-                 s3_prefix: str = "earnings-documents",
                  dry_run: bool = False,
                  enable_db: bool = True):
-        """
-        Initialize S3 uploader
+        """Initialize unified uploader"""
         
-        Args:
-            bucket_name: S3 bucket name
-            parsed_root: Local directory containing parsed documents
-            s3_prefix: Prefix (folder) in S3 bucket for all uploads
-            dry_run: If True, simulate uploads without actually uploading
-            enable_db: If True, enable database logging
-        """
         self.bucket_name = bucket_name
+        self.downloads_root = Path(downloads_root)
         self.parsed_root = Path(parsed_root)
-        self.s3_prefix = s3_prefix
         self.dry_run = dry_run
         
-        # Initialize boto3 S3 client
+        # Initialize S3
         try:
             self.s3_client = boto3.client('s3')
-            logger.info("✓ AWS S3 client initialized successfully")
+            logger.info("✓ AWS S3 client initialized")
         except NoCredentialsError:
-            logger.error("AWS credentials not found. Run 'aws configure' first.")
+            logger.error("AWS credentials not found")
             raise
         
         # Initialize database
@@ -173,17 +181,17 @@ class S3DocumentUploader:
         if enable_db and not dry_run:
             self.db = DatabaseLogger()
         
-        # Stats tracking
+        # Stats
         self.stats = {
-            'companies_processed': 0,
-            'files_uploaded': 0,
+            'raw_files': 0,
+            'parsed_files': 0,
+            'total_files': 0,
             'bytes_uploaded': 0,
-            'failed_uploads': 0,
-            'db_records_created': 0,
-            'errors': []
+            'db_records': 0,
+            'failed': 0
         }
         
-        # MIME type mapping
+        # MIME types
         self.mime_types = {
             '.pdf': 'application/pdf',
             '.csv': 'text/csv',
@@ -192,127 +200,64 @@ class S3DocumentUploader:
             '.md': 'text/markdown',
             '.png': 'image/png',
             '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
             '.jsonl': 'application/jsonl'
         }
     
     def generate_file_id(self, s3_key: str) -> str:
-        """Generate unique file ID using SHA256 hash"""
+        """Generate unique file ID"""
         return hashlib.sha256(s3_key.encode()).hexdigest()[:64]
     
-    def determine_document_type(self, file_path: Path) -> str:
-        """Determine document type from path"""
-        path_str = str(file_path).lower()
+    def get_content_type(self, file_path: Path) -> str:
+        """Get content type"""
+        ext = file_path.suffix.lower()
+        if ext in self.mime_types:
+            return self.mime_types[ext]
+        content_type, _ = mimetypes.guess_type(str(file_path))
+        return content_type or 'application/octet-stream'
+    
+    def determine_document_type(self, file_path: Path, is_raw: bool = False) -> str:
+        """Determine document type"""
+        if is_raw:
+            return 'raw_pdf'
         
-        if '/markdown/' in path_str or path_str.endswith('.md'):
+        path_str = str(file_path).lower()
+        if '/markdown/' in path_str:
             return 'markdown'
-        elif '/tables/' in path_str or path_str.endswith('.csv'):
+        elif '/tables/' in path_str:
             return 'table'
-        elif '/images/' in path_str or path_str.endswith(('.png', '.jpg', '.jpeg')):
+        elif '/images/' in path_str:
             return 'image'
-        elif '/text/' in path_str or path_str.endswith('.txt'):
+        elif '/text/' in path_str:
             return 'text'
-        elif '/json/' in path_str or path_str.endswith('.json'):
+        elif '/json/' in path_str:
             return 'structured_data'
         else:
             return 'other'
     
-    def verify_bucket_exists(self) -> bool:
-        """Verify that the S3 bucket exists and is accessible"""
-        try:
-            self.s3_client.head_bucket(Bucket=self.bucket_name)
-            logger.info(f"✓ S3 bucket '{self.bucket_name}' exists and is accessible")
-            return True
-        except ClientError as e:
-            error_code = e.response['Error']['Code']
-            if error_code == '404':
-                logger.error(f"✗ Bucket '{self.bucket_name}' does not exist")
-            elif error_code == '403':
-                logger.error(f"✗ Access denied to bucket '{self.bucket_name}'")
-            else:
-                logger.error(f"✗ Error accessing bucket: {e}")
-            return False
-    
-    def create_bucket_if_not_exists(self, region: str = 'us-east-1') -> bool:
-        """Create S3 bucket if it doesn't exist"""
-        try:
-            if self.verify_bucket_exists():
-                return True
-            
-            if self.dry_run:
-                logger.info(f"[DRY RUN] Would create bucket '{self.bucket_name}' in {region}")
-                return True
-            
-            logger.info(f"Creating bucket '{self.bucket_name}' in {region}...")
-            
-            if region == 'us-east-1':
-                self.s3_client.create_bucket(Bucket=self.bucket_name)
-            else:
-                self.s3_client.create_bucket(
-                    Bucket=self.bucket_name,
-                    CreateBucketConfiguration={'LocationConstraint': region}
-                )
-            
-            logger.info(f"✓ Bucket '{self.bucket_name}' created successfully")
-            return True
-            
-        except ClientError as e:
-            logger.error(f"✗ Failed to create bucket: {e}")
-            return False
-    
-    def get_content_type(self, file_path: Path) -> str:
-        """Determine content type for a file"""
-        ext = file_path.suffix.lower()
-        
-        if ext in self.mime_types:
-            return self.mime_types[ext]
-        
-        content_type, _ = mimetypes.guess_type(str(file_path))
-        return content_type or 'application/octet-stream'
-    
-    def get_s3_key(self, ticker: str, relative_path: Path) -> str:
-        """Generate S3 key for a file"""
-        parts = relative_path.parts
-        
-        if parts[0] == ticker:
-            parts = parts[1:]
-        
-        relative_str = '/'.join(parts)
-        return f"{self.s3_prefix}/{ticker}/{relative_str}"
-    
-    def upload_file(self, local_path: Path, s3_key: str, ticker: str) -> bool:
-        """
-        Upload a single file to S3 and log to database
-        
-        Args:
-            local_path: Local file path
-            s3_key: S3 object key (path in bucket)
-            ticker: Company ticker
-            
-        Returns:
-            True if successful, False otherwise
-        """
+    def upload_file_with_metadata(self, local_path: Path, s3_key: str, 
+                                   ticker: str, is_raw: bool = False) -> bool:
+        """Upload file to S3 and log metadata to RDS"""
         try:
             if self.dry_run:
-                logger.debug(f"[DRY RUN] Would upload: {local_path}")
                 return True
             
-            # Get file info
             file_size = local_path.stat().st_size
             content_type = self.get_content_type(local_path)
             
             # Upload to S3
-            extra_args = {'ContentType': content_type}
-            
             self.s3_client.upload_file(
                 str(local_path),
                 self.bucket_name,
                 s3_key,
-                ExtraArgs=extra_args
+                ExtraArgs={'ContentType': content_type}
             )
             
             # Update stats
-            self.stats['files_uploaded'] += 1
+            if is_raw:
+                self.stats['raw_files'] += 1
+            else:
+                self.stats['parsed_files'] += 1
+            self.stats['total_files'] += 1
             self.stats['bytes_uploaded'] += file_size
             
             # Log to database
@@ -325,8 +270,8 @@ class S3DocumentUploader:
                     'file_extension': local_path.suffix,
                     'file_size_bytes': file_size,
                     'file_size_mb': round(file_size / 1024 / 1024, 2),
-                    'document_type': self.determine_document_type(local_path),
-                    'document_subtype': 'quarterly',
+                    'document_type': self.determine_document_type(local_path, is_raw),
+                    'document_subtype': 'raw' if is_raw else 'parsed',
                     'source_url': None,
                     'source_domain': None,
                     'download_timestamp': datetime.now(),
@@ -334,323 +279,255 @@ class S3DocumentUploader:
                 }
                 
                 if self.db.log_document(metadata):
-                    self.stats['db_records_created'] += 1
+                    self.stats['db_records'] += 1
             
-            logger.debug(f"✓ Uploaded: {s3_key} ({file_size:,} bytes)")
             return True
             
-        except ClientError as e:
-            logger.error(f"✗ Failed to upload {local_path}: {e}")
-            self.stats['failed_uploads'] += 1
-            self.stats['errors'].append({
-                'file': str(local_path),
-                's3_key': s3_key,
-                'error': str(e)
-            })
-            return False
         except Exception as e:
-            logger.error(f"✗ Unexpected error uploading {local_path}: {e}")
-            self.stats['failed_uploads'] += 1
-            self.stats['errors'].append({
-                'file': str(local_path),
-                's3_key': s3_key,
-                'error': str(e)
-            })
+            logger.error(f"✗ Upload failed: {e}")
+            self.stats['failed'] += 1
             return False
     
-    def upload_company_documents(self, ticker: str, ticker_dir: Path) -> Dict:
-        """Upload all documents for a single company"""
-        result = {
-            'ticker': ticker,
-            'status': 'pending',
-            'files_uploaded': 0,
-            'bytes_uploaded': 0,
-            'db_records': 0,
-            'failed_files': 0,
-            'start_time': datetime.now().isoformat()
-        }
+    def upload_raw_pdfs(self, ticker: str, ticker_dir: Path) -> Dict:
+        """Upload raw PDFs from downloads folder"""
+        result = {'ticker': ticker, 'raw_files': 0, 'bytes': 0}
         
-        try:
-            logger.info(f"\n{'='*70}")
-            logger.info(f"Uploading documents for {ticker}")
-            logger.info(f"{'='*70}")
+        # Find all PDFs
+        pdf_files = list(ticker_dir.glob("*.pdf"))
+        if not pdf_files:
+            pdf_files = list(ticker_dir.rglob("*.pdf"))
+        
+        if not pdf_files:
+            logger.warning(f"No PDFs found for {ticker} in downloads")
+            return result
+        
+        logger.info(f"  Uploading {len(pdf_files)} raw PDFs...")
+        
+        for pdf_file in pdf_files:
+            # S3 key: raw-documents/TICKER/filename.pdf
+            s3_key = f"raw-documents/{ticker}/{pdf_file.name}"
             
-            # Find all files recursively
-            all_files = list(ticker_dir.rglob('*'))
-            file_list = [f for f in all_files if f.is_file()]
-            
-            if not file_list:
-                logger.warning(f"No files found for {ticker}")
-                result['status'] = 'no_files'
-                return result
-            
-            logger.info(f"Found {len(file_list)} files to upload")
-            
-            # Track DB records before upload
-            db_before = self.stats['db_records_created']
-            
-            # Upload each file with progress bar
-            with tqdm(file_list, desc=f"{ticker}", unit="file") as pbar:
-                for file_path in pbar:
-                    relative_path = file_path.relative_to(self.parsed_root)
-                    s3_key = self.get_s3_key(ticker, relative_path)
-                    
-                    if self.upload_file(file_path, s3_key, ticker):
-                        result['files_uploaded'] += 1
-                        result['bytes_uploaded'] += file_path.stat().st_size
-                        pbar.set_postfix({'uploaded': result['files_uploaded']})
-                    else:
-                        result['failed_files'] += 1
-            
-            result['status'] = 'success'
-            result['db_records'] = self.stats['db_records_created'] - db_before
-            result['end_time'] = datetime.now().isoformat()
-            
-            logger.info(f"✓ {ticker}: Uploaded {result['files_uploaded']}/{len(file_list)} files "
-                       f"({result['bytes_uploaded']:,} bytes)")
-            if self.db and self.db.connection:
-                logger.info(f"  DB records created: {result['db_records']}")
-            
-            self.stats['companies_processed'] += 1
-            
-        except Exception as e:
-            logger.error(f"✗ {ticker}: Error during upload - {e}")
-            result['status'] = 'error'
-            result['error'] = str(e)
-            self.stats['errors'].append({
-                'ticker': ticker,
-                'error': str(e)
-            })
+            if self.upload_file_with_metadata(pdf_file, s3_key, ticker, is_raw=True):
+                result['raw_files'] += 1
+                result['bytes'] += pdf_file.stat().st_size
         
         return result
     
-    def upload_all_companies(self, specific_ticker: Optional[str] = None) -> List[Dict]:
-        """Upload documents for all companies (or a specific ticker)"""
-        results = []
+    def upload_parsed_files(self, ticker: str, ticker_dir: Path) -> Dict:
+        """Upload parsed files from parsed folder"""
+        result = {'ticker': ticker, 'parsed_files': 0, 'bytes': 0}
         
-        if not self.parsed_root.exists():
-            logger.error(f"Parsed directory not found: {self.parsed_root}")
-            return results
+        # Find all files recursively
+        all_files = [f for f in ticker_dir.rglob('*') if f.is_file()]
         
-        # Get list of ticker directories
+        if not all_files:
+            logger.warning(f"No parsed files found for {ticker}")
+            return result
+        
+        logger.info(f"  Uploading {len(all_files)} parsed files...")
+        
+        with tqdm(all_files, desc=f"  {ticker} parsed", leave=False) as pbar:
+            for file_path in pbar:
+                # Get relative path from parsed_root
+                try:
+                    relative_path = file_path.relative_to(self.parsed_root)
+                    
+                    # Remove ticker from path if first
+                    parts = relative_path.parts
+                    if parts[0] == ticker:
+                        parts = parts[1:]
+                    
+                    # S3 key: earnings-documents/TICKER/folder/file
+                    s3_key = f"earnings-documents/{ticker}/{'/'.join(parts)}"
+                    
+                    if self.upload_file_with_metadata(file_path, s3_key, ticker, is_raw=False):
+                        result['parsed_files'] += 1
+                        result['bytes'] += file_path.stat().st_size
+                        
+                except Exception as e:
+                    logger.debug(f"Error uploading {file_path}: {e}")
+                    continue
+        
+        return result
+    
+    def upload_company_complete(self, ticker: str, mode: str = 'both') -> Dict:
+        """Upload both raw and parsed for a company"""
+        
+        logger.info(f"\n{'='*70}")
+        logger.info(f"Processing {ticker}")
+        logger.info(f"{'='*70}")
+        
+        result = {
+            'ticker': ticker,
+            'raw_files': 0,
+            'parsed_files': 0,
+            'total_files': 0,
+            'bytes': 0,
+            'status': 'success'
+        }
+        
+        # Upload raw PDFs
+        if mode in ['raw', 'both']:
+            downloads_dir = self.downloads_root / ticker
+            if downloads_dir.exists():
+                raw_result = self.upload_raw_pdfs(ticker, downloads_dir)
+                result['raw_files'] = raw_result['raw_files']
+                result['bytes'] += raw_result['bytes']
+                logger.info(f"  ✓ Raw PDFs: {raw_result['raw_files']} files")
+            else:
+                logger.warning(f"  Downloads folder not found: {downloads_dir}")
+        
+        # Upload parsed files
+        if mode in ['parsed', 'both']:
+            parsed_dir = self.parsed_root / ticker
+            if parsed_dir.exists():
+                parsed_result = self.upload_parsed_files(ticker, parsed_dir)
+                result['parsed_files'] = parsed_result['parsed_files']
+                result['bytes'] += parsed_result['bytes']
+                logger.info(f"  ✓ Parsed files: {parsed_result['parsed_files']} files")
+            else:
+                logger.warning(f"  Parsed folder not found: {parsed_dir}")
+        
+        result['total_files'] = result['raw_files'] + result['parsed_files']
+        
+        logger.info(f"  ✓ Total: {result['total_files']} files ({result['bytes']/1024/1024:.1f} MB)")
+        
+        return result
+    
+    def upload_all_companies(self, specific_ticker: Optional[str] = None, 
+                            mode: str = 'both') -> List[Dict]:
+        """Upload all companies"""
+        
+        # Find all tickers from both directories
+        tickers = set()
+        
+        if self.downloads_root.exists():
+            tickers.update(d.name for d in self.downloads_root.iterdir() if d.is_dir())
+        
+        if self.parsed_root.exists():
+            tickers.update(d.name for d in self.parsed_root.iterdir() if d.is_dir())
+        
         if specific_ticker:
-            ticker_dirs = [self.parsed_root / specific_ticker]
-            if not ticker_dirs[0].exists():
-                logger.error(f"Ticker directory not found: {ticker_dirs[0]}")
-                return results
-        else:
-            ticker_dirs = [d for d in self.parsed_root.iterdir() if d.is_dir()]
+            tickers = {specific_ticker} if specific_ticker in tickers else set()
+        
+        if not tickers:
+            logger.error("No companies found")
+            return []
         
         db_status = "Enabled" if (self.db and self.db.connection) else "Disabled"
         
         logger.info(f"\n{'='*70}")
-        logger.info(f"S3 DOCUMENT UPLOAD")
+        logger.info(f"UNIFIED S3 UPLOAD - RAW + PARSED")
         logger.info(f"{'='*70}")
         logger.info(f"Bucket: {self.bucket_name}")
-        logger.info(f"Prefix: {self.s3_prefix}")
-        logger.info(f"Source: {self.parsed_root}")
-        logger.info(f"Companies: {len(ticker_dirs)}")
+        logger.info(f"Mode: {mode.upper()}")
+        logger.info(f"Downloads: {self.downloads_root}")
+        logger.info(f"Parsed: {self.parsed_root}")
+        logger.info(f"Companies: {len(tickers)}")
         logger.info(f"Database: {db_status}")
-        logger.info(f"Dry Run: {self.dry_run}")
         logger.info(f"{'='*70}\n")
         
         start_time = datetime.now()
+        results = []
         
         # Upload each company
-        for idx, ticker_dir in enumerate(sorted(ticker_dirs), 1):
-            ticker = ticker_dir.name
-            logger.info(f"\n[{idx}/{len(ticker_dirs)}] Processing {ticker}...")
-            
-            result = self.upload_company_documents(ticker, ticker_dir)
+        for idx, ticker in enumerate(sorted(tickers), 1):
+            logger.info(f"[{idx}/{len(tickers)}] {ticker}")
+            result = self.upload_company_complete(ticker, mode)
             results.append(result)
         
-        end_time = datetime.now()
-        duration = (end_time - start_time).total_seconds()
+        duration = (datetime.now() - start_time).total_seconds()
         
-        # Final summary
+        # Summary
         logger.info(f"\n{'='*70}")
         logger.info(f"UPLOAD COMPLETE")
         logger.info(f"{'='*70}")
-        logger.info(f"Duration: {duration:.1f}s ({duration/60:.1f} minutes)")
-        logger.info(f"Companies processed: {self.stats['companies_processed']}/{len(ticker_dirs)}")
-        logger.info(f"Files uploaded: {self.stats['files_uploaded']:,}")
-        logger.info(f"Data uploaded: {self.stats['bytes_uploaded']:,} bytes ({self.stats['bytes_uploaded']/1024/1024:.1f} MB)")
-        logger.info(f"DB records created: {self.stats['db_records_created']:,}")
-        logger.info(f"Failed uploads: {self.stats['failed_uploads']}")
-        
-        if self.stats['errors']:
-            logger.warning(f"\nErrors encountered: {len(self.stats['errors'])}")
-            for error in self.stats['errors'][:5]:
-                logger.warning(f"  - {error}")
-        
+        logger.info(f"Duration: {duration:.1f}s ({duration/60:.1f} min)")
+        logger.info(f"Companies: {len(results)}")
+        logger.info(f"Raw PDFs: {self.stats['raw_files']}")
+        logger.info(f"Parsed files: {self.stats['parsed_files']}")
+        logger.info(f"Total files: {self.stats['total_files']}")
+        logger.info(f"Data uploaded: {self.stats['bytes_uploaded']/1024/1024:.1f} MB")
+        logger.info(f"DB records: {self.stats['db_records']}")
+        logger.info(f"Failed: {self.stats['failed']}")
         logger.info(f"{'='*70}\n")
         
         return results
     
-    def save_upload_summary(self, results: List[Dict], output_path: Optional[Path] = None):
-        """Save upload summary to JSON file"""
-        if output_path is None:
-            output_path = self.parsed_root / 'upload_summary.json'
-        
+    def save_summary(self, results: List[Dict]):
+        """Save upload summary"""
         summary = {
-            'upload_info': {
-                'bucket': self.bucket_name,
-                's3_prefix': self.s3_prefix,
-                'source_directory': str(self.parsed_root),
-                'timestamp': datetime.now().isoformat(),
-                'dry_run': self.dry_run
-            },
+            'timestamp': datetime.now().isoformat(),
+            'bucket': self.bucket_name,
             'statistics': self.stats,
-            'company_results': results
+            'companies': results
         }
         
-        with open(output_path, 'w', encoding='utf-8') as f:
+        summary_path = Path('upload_summary_unified.json')
+        with open(summary_path, 'w') as f:
             json.dump(summary, f, indent=2, default=str)
         
-        logger.info(f"Upload summary saved to: {output_path}")
+        logger.info(f"Summary saved: {summary_path}")
     
-    def list_uploaded_files(self, ticker: Optional[str] = None, max_files: int = 100):
-        """List files in S3 bucket for verification"""
+    def verify_bucket(self) -> bool:
+        """Verify bucket exists"""
         try:
-            prefix = f"{self.s3_prefix}/"
-            if ticker:
-                prefix = f"{self.s3_prefix}/{ticker}/"
-            
-            logger.info(f"\nListing files in s3://{self.bucket_name}/{prefix}")
-            logger.info(f"{'='*70}")
-            
-            paginator = self.s3_client.get_paginator('list_objects_v2')
-            pages = paginator.paginate(Bucket=self.bucket_name, Prefix=prefix)
-            
-            count = 0
-            total_size = 0
-            
-            for page in pages:
-                if 'Contents' not in page:
-                    continue
-                
-                for obj in page['Contents']:
-                    if count >= max_files:
-                        break
-                    
-                    key = obj['Key']
-                    size = obj['Size']
-                    modified = obj['LastModified']
-                    
-                    logger.info(f"{key} ({size:,} bytes) - {modified}")
-                    
-                    count += 1
-                    total_size += size
-            
-            logger.info(f"{'='*70}")
-            logger.info(f"Total files: {count}")
-            logger.info(f"Total size: {total_size:,} bytes ({total_size/1024/1024:.1f} MB)")
-            
-            if count >= max_files:
-                logger.info(f"(Showing first {max_files} files)")
-            
-        except ClientError as e:
-            logger.error(f"Error listing files: {e}")
+            self.s3_client.head_bucket(Bucket=self.bucket_name)
+            logger.info(f"✓ Bucket '{self.bucket_name}' verified")
+            return True
+        except ClientError:
+            logger.error(f"✗ Bucket '{self.bucket_name}' not accessible")
+            return False
     
     def close(self):
-        """Cleanup resources"""
+        """Cleanup"""
         if self.db:
             self.db.close()
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Upload parsed earnings documents to AWS S3'
+        description='Upload raw PDFs and parsed documents to S3'
     )
-    parser.add_argument(
-        '--bucket',
-        required=True,
-        help='S3 bucket name'
-    )
-    parser.add_argument(
-        '--parsed-root',
-        default='data/parsed',
-        help='Root directory containing parsed documents'
-    )
-    parser.add_argument(
-        '--prefix',
-        default='earnings-documents',
-        help='S3 prefix (folder) for uploads'
-    )
-    parser.add_argument(
-        '--ticker',
-        help='Upload only this specific ticker'
-    )
-    parser.add_argument(
-        '--create-bucket',
-        action='store_true',
-        help='Create bucket if it does not exist'
-    )
-    parser.add_argument(
-        '--region',
-        default='us-east-1',
-        help='AWS region for bucket creation'
-    )
-    parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Simulate uploads without actually uploading'
-    )
-    parser.add_argument(
-        '--no-db',
-        action='store_true',
-        help='Disable database logging'
-    )
-    parser.add_argument(
-        '--list-files',
-        action='store_true',
-        help='List uploaded files after upload'
-    )
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Enable debug logging'
-    )
+    parser.add_argument('--bucket', required=True, help='S3 bucket name')
+    parser.add_argument('--downloads-root', default='data/raw', 
+                       help='Raw downloads directory')
+    parser.add_argument('--parsed-root', default='data/parsed', 
+                       help='Parsed documents directory')
+    parser.add_argument('--ticker', help='Upload specific ticker only')
+    parser.add_argument('--mode', choices=['raw', 'parsed', 'both'], default='both',
+                       help='Upload mode: raw PDFs only, parsed only, or both')
+    parser.add_argument('--dry-run', action='store_true', help='Simulate upload')
+    parser.add_argument('--no-db', action='store_true', help='Disable database')
+    parser.add_argument('--debug', action='store_true', help='Debug logging')
     
     args = parser.parse_args()
     
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
     
-    # Initialize uploader
-    uploader = S3DocumentUploader(
+    uploader = UnifiedS3Uploader(
         bucket_name=args.bucket,
+        downloads_root=args.downloads_root,
         parsed_root=args.parsed_root,
-        s3_prefix=args.prefix,
         dry_run=args.dry_run,
         enable_db=not args.no_db
     )
     
     try:
-        # Create bucket if requested
-        if args.create_bucket:
-            if not uploader.create_bucket_if_not_exists(region=args.region):
-                logger.error("Failed to create/verify bucket. Exiting.")
-                return
-        else:
-            # Just verify bucket exists
-            if not uploader.verify_bucket_exists():
-                logger.error("Bucket does not exist. Use --create-bucket to create it.")
-                return
+        if not uploader.verify_bucket():
+            return
         
-        # Upload documents
-        results = uploader.upload_all_companies(specific_ticker=args.ticker)
+        results = uploader.upload_all_companies(
+            specific_ticker=args.ticker,
+            mode=args.mode
+        )
         
-        # Save summary
-        uploader.save_upload_summary(results)
+        uploader.save_summary(results)
         
-        # List files if requested
-        if args.list_files:
-            uploader.list_uploaded_files(ticker=args.ticker, max_files=50)
-    
     finally:
         uploader.close()
 
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     main()

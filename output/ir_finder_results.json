@@ -1,5 +1,5 @@
 {
-  "start_time": "2025-10-09T21:53:11.142234",
+  "start_time": "2025-10-10T02:17:44.193732",
   "companies_processed": [
     {
       "ticker": "AAPL",
@@ -10,7 +10,7 @@
       "ir_page_title": "Investor Relations - Apple",
       "strategy_used": "subdomain_pattern",
       "verification_score": 110,
-      "timestamp": "2025-10-09T21:53:12.221207",
+      "timestamp": "2025-10-10T02:17:44.651903",
       "error": null
     },
     {
@@ -22,7 +22,7 @@
       "ir_page_title": "Investors | Amgen Inc.",
       "strategy_used": "subdomain_pattern",
       "verification_score": 55,
-      "timestamp": "2025-10-09T21:53:18.303428",
+      "timestamp": "2025-10-10T02:17:49.637466",
       "error": null
     },
     {
@@ -34,7 +34,7 @@
       "ir_page_title": "Amazon.com, Inc. - Overview",
       "strategy_used": "subdomain_pattern",
       "verification_score": 85,
-      "timestamp": "2025-10-09T21:53:23.773492",
+      "timestamp": "2025-10-10T02:17:54.803753",
       "error": null
     },
     {
@@ -46,7 +46,7 @@
       "ir_page_title": "American Express Company - Investor Relations",
       "strategy_used": "subdomain_pattern",
       "verification_score": 125,
-      "timestamp": "2025-10-09T21:53:30.004489",
+      "timestamp": "2025-10-10T02:18:00.135640",
       "error": null
     },
     {
@@ -58,7 +58,7 @@
       "ir_page_title": "Boeing Company - Investors - Overview",
       "strategy_used": "subdomain_pattern",
       "verification_score": 95,
-      "timestamp": "2025-10-09T21:53:36.355095",
+      "timestamp": "2025-10-10T02:18:06.194295",
       "error": null
     },
     {
@@ -70,7 +70,7 @@
       "ir_page_title": "Caterpillar Inc. - Overview",
       "strategy_used": "subdomain_pattern",
       "verification_score": 100,
-      "timestamp": "2025-10-09T21:53:41.885091",
+      "timestamp": "2025-10-10T02:18:11.830639",
       "error": null
     },
     {
@@ -82,7 +82,7 @@
       "ir_page_title": "Salesforce.com, Inc. - Salesforce Investor Relations",
       "strategy_used": "subdomain_pattern",
       "verification_score": 65,
-      "timestamp": "2025-10-09T21:53:48.938449",
+      "timestamp": "2025-10-10T02:18:18.198430",
       "error": null
     },
     {
@@ -94,7 +94,7 @@
       "ir_page_title": "Investor Relations - Overview - Cisco",
       "strategy_used": "subdomain_pattern",
       "verification_score": 125,
-      "timestamp": "2025-10-09T21:53:56.131504",
+      "timestamp": "2025-10-10T02:18:24.366942",
       "error": null
     },
     {
@@ -106,7 +106,7 @@
       "ir_page_title": "Privacy error",
       "strategy_used": "subdomain_pattern",
       "verification_score": 20,
-      "timestamp": "2025-10-09T21:54:01.083184",
+      "timestamp": "2025-10-10T02:18:30.832188",
       "error": null
     },
     {
@@ -118,7 +118,7 @@
       "ir_page_title": "Investor Relations - Stock Information, Events, Reports, Financial Information, Shareholder Information - The Walt Disney Company",
       "strategy_used": "subdomain_pattern",
       "verification_score": 65,
-      "timestamp": "2025-10-09T21:54:07.093028",
+      "timestamp": "2025-10-10T02:18:35.181428",
       "error": null
     },
     {
@@ -130,7 +130,7 @@
       "ir_page_title": "404 | Goldman Sachs",
       "strategy_used": "subdomain_pattern",
       "verification_score": 40,
-      "timestamp": "2025-10-09T21:54:11.656662",
+      "timestamp": "2025-10-10T02:18:39.609672",
       "error": null
     },
     {
@@ -142,228 +142,11 @@
       "ir_page_title": "The Home Depot",
       "strategy_used": "subdomain_pattern",
       "verification_score": 80,
-      "timestamp": "2025-10-09T21:54:18.531793",
-      "error": null
-    },
-    {
-      "ticker": "HON",
-      "company_name": "Honeywell",
-      "company_url": "https://www.honeywell.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.honeywell.com/",
-      "ir_page_title": "Investor Relations | Honeywell International Inc.",
-      "strategy_used": "page_source_search",
-      "verification_score": 90,
-      "timestamp": "2025-10-09T21:54:26.924774",
-      "error": null
-    },
-    {
-      "ticker": "IBM",
-      "company_name": "IBM",
-      "company_url": "https://www.ibm.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.ibm.com/investor",
-      "ir_page_title": "Investor Relations | IBM",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 80,
-      "timestamp": "2025-10-09T22:00:07.463850",
-      "error": null
-    },
-    {
-      "ticker": "JNJ",
-      "company_name": "Johnson & Johnson",
-      "company_url": "https://www.jnj.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.jnj.com/overview/default.aspx",
-      "ir_page_title": "Investor Relations | Johnson & Johnson",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 90,
-      "timestamp": "2025-10-09T22:00:14.783846",
-      "error": null
-    },
-    {
-      "ticker": "JPM",
-      "company_name": "JPMorgan Chase",
-      "company_url": "https://www.jpmorganchase.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.jpmorganchase.com/",
-      "ir_page_title": "Home | JPMorganChase",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 35,
-      "timestamp": "2025-10-09T22:00:22.477660",
-      "error": null
-    },
-    {
-      "ticker": "KO",
-      "company_name": "Coca-Cola",
-      "company_url": "https://www.coca-colacompany.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.coca-colacompany.com/",
-      "ir_page_title": "The Coca-Cola Company (KO)",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 70,
-      "timestamp": "2025-10-09T22:00:28.842408",
-      "error": null
-    },
-    {
-      "ticker": "MCD",
-      "company_name": "McDonald's",
-      "company_url": "https://corporate.mcdonalds.com",
-      "ir_page_found": true,
-      "ir_url": "https://corporate.mcdonalds.com/investors",
-      "ir_page_title": "404 Not Found",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 20,
-      "timestamp": "2025-10-09T22:00:33.806907",
-      "error": null
-    },
-    {
-      "ticker": "MMM",
-      "company_name": "3M",
-      "company_url": "https://www.3m.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.3m.com/",
-      "ir_page_title": "3M Company (MMM)",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 105,
-      "timestamp": "2025-10-09T22:00:41.029590",
-      "error": null
-    },
-    {
-      "ticker": "MRK",
-      "company_name": "Merck",
-      "company_url": "https://www.merck.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.merck.com/investor-relations/",
-      "ir_page_title": "Investor relations - Merck.com",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 100,
-      "timestamp": "2025-10-09T22:00:46.433435",
-      "error": null
-    },
-    {
-      "ticker": "MSFT",
-      "company_name": "Microsoft",
-      "company_url": "https://www.microsoft.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.microsoft.com/en-us/investor/default",
-      "ir_page_title": "Home page",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 75,
-      "timestamp": "2025-10-09T22:00:53.981945",
-      "error": null
-    },
-    {
-      "ticker": "NKE",
-      "company_name": "Nike",
-      "company_url": "https://www.nike.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.nike.com/Home/default.aspx",
-      "ir_page_title": "NIKE, Inc. - Investor Relations - Home",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 65,
-      "timestamp": "2025-10-09T22:01:00.878115",
-      "error": null
-    },
-    {
-      "ticker": "NVDA",
-      "company_name": "NVIDIA",
-      "company_url": "https://www.nvidia.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.nvidia.com/home/default.aspx",
-      "ir_page_title": "NVIDIA Corporation - Home",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 100,
-      "timestamp": "2025-10-09T22:01:06.893959",
-      "error": null
-    },
-    {
-      "ticker": "PG",
-      "company_name": "Procter & Gamble",
-      "company_url": "https://us.pg.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.pginvestor.com/overview/default.aspx",
-      "ir_page_title": "Investor Relations | Procter & Gamble Investor Relations",
-      "strategy_used": "link_navigation",
-      "verification_score": 100,
-      "timestamp": "2025-10-09T22:01:13.267547",
-      "error": null
-    },
-    {
-      "ticker": "SHW",
-      "company_name": "The Sherwin-Williams Company",
-      "company_url": "https://www.sherwin-williams.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.sherwin-williams.com/investor-home/default.aspx",
-      "ir_page_title": "Sherwin-Williams - Investor Relations",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 80,
-      "timestamp": "2025-10-09T22:01:35.354061",
-      "error": null
-    },
-    {
-      "ticker": "TRV",
-      "company_name": "Travelers",
-      "company_url": "https://www.travelers.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.travelers.com/home/default.aspx",
-      "ir_page_title": "Travelers Investor Relations | Home",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 110,
-      "timestamp": "2025-10-09T22:01:42.445423",
-      "error": null
-    },
-    {
-      "ticker": "UNH",
-      "company_name": "UnitedHealth Group",
-      "company_url": "https://www.unitedhealthgroup.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.unitedhealthgroup.com/investors.html",
-      "ir_page_title": "Investor Information - UnitedHealth Group",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 110,
-      "timestamp": "2025-10-09T22:01:48.242927",
-      "error": null
-    },
-    {
-      "ticker": "V",
-      "company_name": "Visa",
-      "company_url": "https://www.visa.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.visa.com/",
-      "ir_page_title": "Visa - Investor Relations",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 100,
-      "timestamp": "2025-10-09T22:02:02.967057",
-      "error": null
-    },
-    {
-      "ticker": "VZ",
-      "company_name": "Verizon",
-      "company_url": "https://www.verizon.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.verizon.com/about/investors",
-      "ir_page_title": "Investor & Shareholder Hub for News & Events | About Verizon",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 95,
-      "timestamp": "2025-10-09T22:02:09.420477",
-      "error": null
-    },
-    {
-      "ticker": "WMT",
-      "company_name": "Walmart",
-      "company_url": "https://corporate.walmart.com",
-      "ir_page_found": true,
-      "ir_url": "https://stock.walmart.com/",
-      "ir_page_title": "Walmart Inc. (WMT)",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 75,
-      "timestamp": "2025-10-09T22:02:44.700847",
+      "timestamp": "2025-10-10T02:18:46.366058",
       "error": null
     }
   ],
-  "success_count": 30,
+  "success_count": 12,
   "failure_count": 0,
-  "dow30_updated": "November 8, 2024",
-  "end_time": "2025-10-09T22:02:53.990186"
+  "dow30_updated": "November 8, 2024"
 }
