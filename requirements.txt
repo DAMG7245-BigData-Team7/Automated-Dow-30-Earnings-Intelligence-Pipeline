@@ -27,3 +27,20 @@ pytest==7.4.3
 pytest-timeout==2.2.0
 black==23.11.0  # Code formatting
 flake8==6.1.0  # Linting
+
+# --- AWS Integration ---
+boto3>=1.29.7
+botocore>=1.32.7
+
+# --- Database (RDS PostgreSQL) ---
+psycopg2-binary>=2.9.9
+python-dotenv>=1.0.0
+
+# --- Utilities ---
+urllib3==2.1.0
+
+# --- Dev / Test ---
+pytest==7.4.3
+pytest-timeout==2.2.0
+black==23.11.0
+flake8==6.1.0

@@ -1,0 +1,246 @@
+{
+  "timestamp": "2025-10-10T10:19:41.501005",
+  "bucket": "doc-dow-30-2025",
+  "statistics": {
+    "raw_files": 53,
+    "parsed_files": 1093,
+    "total_files": 1146,
+    "bytes_uploaded": 178493804,
+    "db_records": 1146,
+    "failed": 0
+  },
+  "companies": [
+    {
+      "ticker": "AAPL",
+      "raw_files": 1,
+      "parsed_files": 29,
+      "total_files": 30,
+      "bytes": 2492585,
+      "status": "success"
+    },
+    {
+      "ticker": "AMGN",
+      "raw_files": 2,
+      "parsed_files": 82,
+      "total_files": 84,
+      "bytes": 8114457,
+      "status": "success"
+    },
+    {
+      "ticker": "AMZN",
+      "raw_files": 2,
+      "parsed_files": 12,
+      "total_files": 14,
+      "bytes": 2372744,
+      "status": "success"
+    },
+    {
+      "ticker": "AXP",
+      "raw_files": 2,
+      "parsed_files": 6,
+      "total_files": 8,
+      "bytes": 1239350,
+      "status": "success"
+    },
+    {
+      "ticker": "BA",
+      "raw_files": 2,
+      "parsed_files": 20,
+      "total_files": 22,
+      "bytes": 2347949,
+      "status": "success"
+    },
+    {
+      "ticker": "CAT",
+      "raw_files": 2,
+      "parsed_files": 92,
+      "total_files": 94,
+      "bytes": 24261022,
+      "status": "success"
+    },
+    {
+      "ticker": "CRM",
+      "raw_files": 1,
+      "parsed_files": 59,
+      "total_files": 60,
+      "bytes": 6039135,
+      "status": "success"
+    },
+    {
+      "ticker": "CSCO",
+      "raw_files": 2,
+      "parsed_files": 28,
+      "total_files": 30,
+      "bytes": 2591164,
+      "status": "success"
+    },
+    {
+      "ticker": "CVX",
+      "raw_files": 1,
+      "parsed_files": 4,
+      "total_files": 5,
+      "bytes": 191739,
+      "status": "success"
+    },
+    {
+      "ticker": "DIS",
+      "raw_files": 2,
+      "parsed_files": 48,
+      "total_files": 50,
+      "bytes": 16613263,
+      "status": "success"
+    },
+    {
+      "ticker": "HD",
+      "raw_files": 2,
+      "parsed_files": 65,
+      "total_files": 67,
+      "bytes": 7747300,
+      "status": "success"
+    },
+    {
+      "ticker": "HON",
+      "raw_files": 2,
+      "parsed_files": 17,
+      "total_files": 19,
+      "bytes": 2929943,
+      "status": "success"
+    },
+    {
+      "ticker": "IBM",
+      "raw_files": 2,
+      "parsed_files": 18,
+      "total_files": 20,
+      "bytes": 2464550,
+      "status": "success"
+    },
+    {
+      "ticker": "JNJ",
+      "raw_files": 2,
+      "parsed_files": 8,
+      "total_files": 10,
+      "bytes": 980770,
+      "status": "success"
+    },
+    {
+      "ticker": "JPM",
+      "raw_files": 2,
+      "parsed_files": 22,
+      "total_files": 24,
+      "bytes": 5867988,
+      "status": "success"
+    },
+    {
+      "ticker": "KO",
+      "raw_files": 2,
+      "parsed_files": 32,
+      "total_files": 34,
+      "bytes": 9427745,
+      "status": "success"
+    },
+    {
+      "ticker": "MMM",
+      "raw_files": 2,
+      "parsed_files": 73,
+      "total_files": 75,
+      "bytes": 18703715,
+      "status": "success"
+    },
+    {
+      "ticker": "MRK",
+      "raw_files": 2,
+      "parsed_files": 13,
+      "total_files": 15,
+      "bytes": 1460108,
+      "status": "success"
+    },
+    {
+      "ticker": "NKE",
+      "raw_files": 2,
+      "parsed_files": 8,
+      "total_files": 10,
+      "bytes": 750262,
+      "status": "success"
+    },
+    {
+      "ticker": "NVDA",
+      "raw_files": 2,
+      "parsed_files": 50,
+      "total_files": 52,
+      "bytes": 9623688,
+      "status": "success"
+    },
+    {
+      "ticker": "PG",
+      "raw_files": 1,
+      "parsed_files": 145,
+      "total_files": 146,
+      "bytes": 14885494,
+      "status": "success"
+    },
+    {
+      "ticker": "SHW",
+      "raw_files": 2,
+      "parsed_files": 112,
+      "total_files": 114,
+      "bytes": 15108086,
+      "status": "success"
+    },
+    {
+      "ticker": "TRV",
+      "raw_files": 2,
+      "parsed_files": 28,
+      "total_files": 30,
+      "bytes": 3517274,
+      "status": "success"
+    },
+    {
+      "ticker": "UNH",
+      "raw_files": 2,
+      "parsed_files": 4,
+      "total_files": 6,
+      "bytes": 594801,
+      "status": "success"
+    },
+    {
+      "ticker": "V",
+      "raw_files": 2,
+      "parsed_files": 56,
+      "total_files": 58,
+      "bytes": 2196123,
+      "status": "success"
+    },
+    {
+      "ticker": "VZ",
+      "raw_files": 3,
+      "parsed_files": 21,
+      "total_files": 24,
+      "bytes": 8609955,
+      "status": "success"
+    },
+    {
+      "ticker": "WMT",
+      "raw_files": 4,
+      "parsed_files": 41,
+      "total_files": 45,
+      "bytes": 7362594,
+      "status": "success"
+    },
+    {
+      "ticker": "_logs",
+      "raw_files": 0,
+      "parsed_files": 0,
+      "total_files": 0,
+      "bytes": 0,
+      "status": "success"
+    },
+    {
+      "ticker": "logs",
+      "raw_files": 0,
+      "parsed_files": 0,
+      "total_files": 0,
+      "bytes": 0,
+      "status": "success"
+    }
+  ]
+}
