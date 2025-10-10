@@ -54,7 +54,7 @@ docling_parser_task = BashOperator(
 
 upload_s3_task = BashOperator(
     task_id='upload_s3',
-    bash_command=f'cd "{project_root}" && python3 s3_upload.py --bucket doc-dow-30-2025 --parsed-root data/parsed --ticker AXP'
+    bash_command=f'cd "{project_root}" && python3 s3_upload.py --bucket doc-dow-30-2025 --parsed-root data/parsed '
 )
 
 end_task = BashOperator(

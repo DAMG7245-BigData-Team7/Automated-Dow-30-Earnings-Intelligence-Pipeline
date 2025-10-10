@@ -70,7 +70,7 @@ def find_smallest_file_per_ticker(downloads_dir: Path) -> Dict[str, Path]:
 
         if smallest_file:
             ticker_files[ticker] = smallest_file
-            log.info(f"Selected for {ticker}: {smallest_file.name} ({smallest_size:,} bytes)")
+            log.info(f"Found smallest file for {ticker}: {smallest_file.name} ({smallest_size:,} bytes)")
         else:
             log.warning(f"No document files found in {ticker_dir}")
 
@@ -95,13 +95,12 @@ def parse_document(file_path: Path, ticker: str, parsed_dir: Path):
             format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=opts)}
         )
 
-        log.info(f"Processing {ticker}: {file_path.name} ...")
+        log.info(f"Parsing document for {ticker}: {file_path.name} ...")
         conv = converter.convert(file_path)
         doc = conv.document
 
         # Output folders for this ticker
         base = parsed_dir / ticker
-        (base / "text").mkdir(parents=True, exist_ok=True)
         (base / "json").mkdir(parents=True, exist_ok=True)
         (base / "markdown").mkdir(parents=True, exist_ok=True)
         (base / "tables").mkdir(parents=True, exist_ok=True)
@@ -116,16 +115,6 @@ def parse_document(file_path: Path, ticker: str, parsed_dir: Path):
         # Save Markdown
         (base / "markdown" / f"{file_path.stem}.md").write_text(
             doc.export_to_markdown(), encoding="utf-8"
-        )
-
-        # Save text
-        text_blocks = []
-        for p in doc.pages.values():
-            for b in getattr(p, "blocks", []):
-                if hasattr(b, "text") and b.text:
-                    text_blocks.append(b.text)
-        (base / "text" / f"{file_path.stem}.txt").write_text(
-            "\n\n".join(text_blocks), encoding="utf-8"
         )
 
         # Save tables
@@ -150,7 +139,7 @@ def parse_document(file_path: Path, ticker: str, parsed_dir: Path):
                 except Exception as e:
                     log.warning(f"Image save failed: {e}")
 
-        log.info(f"✅ Done {ticker}: {file_path.name} ({table_count} tables, {image_count} images)")
+        log.info(f"✅ Successfully parsed {ticker}: {file_path.name} (extracted {table_count} tables, {image_count} images)")
         return {
             "file": str(file_path),
             "ticker": ticker,
@@ -160,11 +149,11 @@ def parse_document(file_path: Path, ticker: str, parsed_dir: Path):
         }
 
     except Exception as e:
-        log.error(f"❌ Failed {ticker}: {file_path.name} - {e}")
+        log.error(f"❌ Parsing failed for {ticker}: {file_path.name} - {e}")
         return {"file": str(file_path), "ticker": ticker, "status": "error", "error": str(e)}
 
 
-def main(downloads_dir: Path, parsed_dir: Path, concurrency: int = 3):
+def main(downloads_dir: Path, parsed_dir: Path, concurrency: int = 2):
     """Main function to process smallest files from each ticker folder."""
     log.info(f"Looking for files in: {downloads_dir}")
     log.info(f"Output directory: {parsed_dir}")
@@ -176,7 +165,7 @@ def main(downloads_dir: Path, parsed_dir: Path, concurrency: int = 3):
         log.error("No files found to process")
         sys.exit(1)
 
-    log.info(f"Found {len(ticker_files)} tickers to process")
+    log.info(f"Ready to parse documents from {len(ticker_files)} tickers using {concurrency} workers")
     start = time.time()
     results = []
 
@@ -193,13 +182,13 @@ def main(downloads_dir: Path, parsed_dir: Path, concurrency: int = 3):
                 result = fut.result()
                 results.append(result)
                 if result["status"] == "ok":
-                    log.info(f"✅ Completed {ticker}")
+                    log.info(f"✅ Document parsing completed for {ticker}")
                 elif result["status"] == "skipped":
-                    log.info(f"⏭️ Skipped {ticker}: {result.get('reason', 'unknown')}")
+                    log.info(f"⏭️ Document parsing skipped for {ticker}: {result.get('reason', 'unknown')}")
                 else:
-                    log.error(f"❌ Failed {ticker}: {result.get('error', 'unknown error')}")
+                    log.error(f"❌ Document parsing failed for {ticker}: {result.get('error', 'unknown error')}")
             except Exception as e:
-                log.error(f"❌ Unexpected error processing {ticker}: {e}")
+                log.error(f"❌ Unexpected error during document parsing for {ticker}: {e}")
                 results.append({
                     "file": str(file_path),
                     "ticker": ticker,
@@ -227,15 +216,15 @@ def main(downloads_dir: Path, parsed_dir: Path, concurrency: int = 3):
     summary_file = parsed_dir / "parsing_summary.json"
     summary_file.write_text(json.dumps(summary, indent=2))
 
-    log.info("=" * 50)
-    log.info("PARSING SUMMARY")
-    log.info("=" * 50)
-    log.info(f"Total tickers: {len(ticker_files)}")
-    log.info(f"Successful: {successful}")
-    log.info(f"Skipped: {skipped}")
-    log.info(f"Failed: {failed}")
-    log.info(f"Processing time: {elapsed:.1f} seconds")
-    log.info(f"Summary saved to: {summary_file}")
+    log.info("=" * 60)
+    log.info("DOCUMENT PARSING SUMMARY")
+    log.info("=" * 60)
+    log.info(f"Total tickers processed: {len(ticker_files)}")
+    log.info(f"Successfully parsed: {successful}")
+    log.info(f"Skipped (non-PDF): {skipped}")
+    log.info(f"Failed to parse: {failed}")
+    log.info(f"Total processing time: {elapsed:.1f} seconds")
+    log.info(f"Detailed summary saved to: {summary_file}")
 
 
 if __name__ == "__main__":
@@ -244,8 +233,8 @@ if __name__ == "__main__":
                        help="Downloads directory containing ticker folders")
     parser.add_argument("--output", type=str, default="data/parsed",
                        help="Output directory for parsed content")
-    parser.add_argument("--concurrency", type=int, default=3,
-                       help="Number of concurrent processes")
+    parser.add_argument("--concurrency", type=int, default=2,
+                       help="Number of concurrent worker processes for document parsing")
 
     args = parser.parse_args()
 

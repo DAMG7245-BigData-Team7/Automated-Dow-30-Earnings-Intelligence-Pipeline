@@ -49,7 +49,6 @@ airflow/
 output/
   ir_finder_results.json
   ir_finder_summary.txt
-.env.example
 .gitignore
 .repomixignore
 docling_parser.py
@@ -57,7 +56,8 @@ File_Downloader_v2.py
 IR_extractor.py
 README.md
 requirements.txt
-s3_uploader.py
+s3_upload.py
+upload_summary_unified.json
 </directory_structure>
 
 <files>
@@ -69,7 +69,12 @@ This section contains the contents of the repository's files.
     "allow": [
       "Bash(pip install:*)",
       "Bash(python3:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(pkill:*)",
+      "Bash(airflow webserver:*)",
+      "Bash(airflow standalone:*)",
+      "Bash(cat:*)",
+      "Bash(airflow config get-value:*)"
     ],
     "deny": [],
     "ask": []
@@ -77,69 +82,253 @@ This section contains the contents of the repository's files.
 }
 </file>
 
-<file path="airflow/dags/dow30_earnings_pipeline.py">
-from datetime import datetime, timedelta
-from airflow import DAG
-from airflow.providers.standard.operators.bash import BashOperator
-import os
-
-default_args = {
-    'owner': 'airflow',
-    'depends_on_past': False,
-    'start_date': datetime(2025, 10, 8),
-    'email_on_failure': False,
-    'email_on_retry': False,
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
+<file path="upload_summary_unified.json">
+{
+  "timestamp": "2025-10-10T10:19:41.501005",
+  "bucket": "doc-dow-30-2025",
+  "statistics": {
+    "raw_files": 53,
+    "parsed_files": 1093,
+    "total_files": 1146,
+    "bytes_uploaded": 178493804,
+    "db_records": 1146,
+    "failed": 0
+  },
+  "companies": [
+    {
+      "ticker": "AAPL",
+      "raw_files": 1,
+      "parsed_files": 29,
+      "total_files": 30,
+      "bytes": 2492585,
+      "status": "success"
+    },
+    {
+      "ticker": "AMGN",
+      "raw_files": 2,
+      "parsed_files": 82,
+      "total_files": 84,
+      "bytes": 8114457,
+      "status": "success"
+    },
+    {
+      "ticker": "AMZN",
+      "raw_files": 2,
+      "parsed_files": 12,
+      "total_files": 14,
+      "bytes": 2372744,
+      "status": "success"
+    },
+    {
+      "ticker": "AXP",
+      "raw_files": 2,
+      "parsed_files": 6,
+      "total_files": 8,
+      "bytes": 1239350,
+      "status": "success"
+    },
+    {
+      "ticker": "BA",
+      "raw_files": 2,
+      "parsed_files": 20,
+      "total_files": 22,
+      "bytes": 2347949,
+      "status": "success"
+    },
+    {
+      "ticker": "CAT",
+      "raw_files": 2,
+      "parsed_files": 92,
+      "total_files": 94,
+      "bytes": 24261022,
+      "status": "success"
+    },
+    {
+      "ticker": "CRM",
+      "raw_files": 1,
+      "parsed_files": 59,
+      "total_files": 60,
+      "bytes": 6039135,
+      "status": "success"
+    },
+    {
+      "ticker": "CSCO",
+      "raw_files": 2,
+      "parsed_files": 28,
+      "total_files": 30,
+      "bytes": 2591164,
+      "status": "success"
+    },
+    {
+      "ticker": "CVX",
+      "raw_files": 1,
+      "parsed_files": 4,
+      "total_files": 5,
+      "bytes": 191739,
+      "status": "success"
+    },
+    {
+      "ticker": "DIS",
+      "raw_files": 2,
+      "parsed_files": 48,
+      "total_files": 50,
+      "bytes": 16613263,
+      "status": "success"
+    },
+    {
+      "ticker": "HD",
+      "raw_files": 2,
+      "parsed_files": 65,
+      "total_files": 67,
+      "bytes": 7747300,
+      "status": "success"
+    },
+    {
+      "ticker": "HON",
+      "raw_files": 2,
+      "parsed_files": 17,
+      "total_files": 19,
+      "bytes": 2929943,
+      "status": "success"
+    },
+    {
+      "ticker": "IBM",
+      "raw_files": 2,
+      "parsed_files": 18,
+      "total_files": 20,
+      "bytes": 2464550,
+      "status": "success"
+    },
+    {
+      "ticker": "JNJ",
+      "raw_files": 2,
+      "parsed_files": 8,
+      "total_files": 10,
+      "bytes": 980770,
+      "status": "success"
+    },
+    {
+      "ticker": "JPM",
+      "raw_files": 2,
+      "parsed_files": 22,
+      "total_files": 24,
+      "bytes": 5867988,
+      "status": "success"
+    },
+    {
+      "ticker": "KO",
+      "raw_files": 2,
+      "parsed_files": 32,
+      "total_files": 34,
+      "bytes": 9427745,
+      "status": "success"
+    },
+    {
+      "ticker": "MMM",
+      "raw_files": 2,
+      "parsed_files": 73,
+      "total_files": 75,
+      "bytes": 18703715,
+      "status": "success"
+    },
+    {
+      "ticker": "MRK",
+      "raw_files": 2,
+      "parsed_files": 13,
+      "total_files": 15,
+      "bytes": 1460108,
+      "status": "success"
+    },
+    {
+      "ticker": "NKE",
+      "raw_files": 2,
+      "parsed_files": 8,
+      "total_files": 10,
+      "bytes": 750262,
+      "status": "success"
+    },
+    {
+      "ticker": "NVDA",
+      "raw_files": 2,
+      "parsed_files": 50,
+      "total_files": 52,
+      "bytes": 9623688,
+      "status": "success"
+    },
+    {
+      "ticker": "PG",
+      "raw_files": 1,
+      "parsed_files": 145,
+      "total_files": 146,
+      "bytes": 14885494,
+      "status": "success"
+    },
+    {
+      "ticker": "SHW",
+      "raw_files": 2,
+      "parsed_files": 112,
+      "total_files": 114,
+      "bytes": 15108086,
+      "status": "success"
+    },
+    {
+      "ticker": "TRV",
+      "raw_files": 2,
+      "parsed_files": 28,
+      "total_files": 30,
+      "bytes": 3517274,
+      "status": "success"
+    },
+    {
+      "ticker": "UNH",
+      "raw_files": 2,
+      "parsed_files": 4,
+      "total_files": 6,
+      "bytes": 594801,
+      "status": "success"
+    },
+    {
+      "ticker": "V",
+      "raw_files": 2,
+      "parsed_files": 56,
+      "total_files": 58,
+      "bytes": 2196123,
+      "status": "success"
+    },
+    {
+      "ticker": "VZ",
+      "raw_files": 3,
+      "parsed_files": 21,
+      "total_files": 24,
+      "bytes": 8609955,
+      "status": "success"
+    },
+    {
+      "ticker": "WMT",
+      "raw_files": 4,
+      "parsed_files": 41,
+      "total_files": 45,
+      "bytes": 7362594,
+      "status": "success"
+    },
+    {
+      "ticker": "_logs",
+      "raw_files": 0,
+      "parsed_files": 0,
+      "total_files": 0,
+      "bytes": 0,
+      "status": "success"
+    },
+    {
+      "ticker": "logs",
+      "raw_files": 0,
+      "parsed_files": 0,
+      "total_files": 0,
+      "bytes": 0,
+      "status": "success"
+    }
+  ]
 }
-
-# Define the DAG
-dag = DAG(
-    'dow30_earnings_pipeline',
-    default_args=default_args,
-    description='DOW 30 Earnings Intelligence Pipeline',
-    schedule=timedelta(days=1),
-    catchup=False,
-    tags=['dow30', 'earnings', 'intelligence'],
-)
-
-# Get the directory containing the DAG file
-dag_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(dag_dir))
-
-# Define tasks
-start_task = BashOperator(
-    task_id='start_pipeline',
-    bash_command='echo "Starting DOW 30 Earnings Intelligence Pipeline..."',
-    dag=dag,
-)
-
-ir_extractor_task = BashOperator(
-    task_id='ir_extractor',
-    bash_command=f'cd "{project_root}" && python3 IR_extractor.py',
-    dag=dag,
-)
-
-file_downloader_task = BashOperator(
-    task_id='file_downloader',
-    bash_command=f'cd "{project_root}" && python3 File_Downloader_v2.py',
-    dag=dag,
-)
-
-docling_parser_task = BashOperator(
-    task_id='docling_parser',
-    bash_command=f'cd "{project_root}" && python3 docling_parser.py --downloads data/downloads --output data/Parsed',
-    dag=dag,
-)
-
-end_task = BashOperator(
-    task_id='end_pipeline',
-    bash_command='echo "DOW 30 Earnings Intelligence Pipeline completed successfully!"',
-    dag=dag,
-)
-
-# Define task dependencies
-start_task >> ir_extractor_task >> file_downloader_task >> docling_parser_task >> end_task
 </file>
 
 <file path="airflow/simple_auth_manager_passwords.json.generated">
@@ -406,1327 +595,6 @@ if __name__ == "__main__":
 
 <file path="README.md">
 # Automated-Dow-30-Earnings-Intelligence-Pipeline
-</file>
-
-<file path="requirements.txt">
-# Core Web Scraping
-selenium>=4.15.0
-webdriver-manager==4.0.1  # Auto-manages ChromeDriver
-requests>=2.31.0
-beautifulsoup4==4.12.2
-lxml>=4.9.3  # Parser for BeautifulSoup
-
-# Document Processing
-PyPDF2==3.0.1  # PDF parsing
-openpyxl==3.1.2  # Excel file handling
-pandas==2.2.0  # Data manipulation
-
-# AWS Integration
-boto3>=1.29.7  # AWS S3 uploads
-botocore>=1.32.7  # AWS core
-
-# Airflow (optional - comment out if not using Airflow)
-# apache-airflow==2.7.3
-# apache-airflow-providers-amazon==8.9.0
-
-# Utilities
-python-dotenv==1.0.0  # Environment variables
-urllib3==2.1.0  # URL handling
-
-# Development/Testing (optional)
-pytest==7.4.3
-pytest-timeout==2.2.0
-black==23.11.0  # Code formatting
-flake8==6.1.0  # Linting
-</file>
-
-<file path="s3_uploader.py">
-import os
-import boto3
-import logging
-from botocore.exceptions import ClientError, NoCredentialsError
-from pathlib import Path
-from typing import Optional, List
-import mimetypes
-from datetime import datetime
-
-class S3Uploader:
-    def __init__(self, bucket_name: str, aws_access_key_id: Optional[str] = None,
-                 aws_secret_access_key: Optional[str] = None, region_name: str = 'us-east-1'):
-        """
-        Initialize S3 uploader
-
-        Args:
-            bucket_name: Name of the S3 bucket
-            aws_access_key_id: AWS access key (optional, can use env vars or IAM roles)
-            aws_secret_access_key: AWS secret key (optional, can use env vars or IAM roles)
-            region_name: AWS region name
-        """
-        self.bucket_name = bucket_name
-        self.region_name = region_name
-
-        # Setup logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
-        self.logger = logging.getLogger(__name__)
-
-        # Initialize S3 client
-        try:
-            if aws_access_key_id and aws_secret_access_key:
-                self.s3_client = boto3.client(
-                    's3',
-                    aws_access_key_id=aws_access_key_id,
-                    aws_secret_access_key=aws_secret_access_key,
-                    region_name=region_name
-                )
-            else:
-                # Use default credentials (env vars, IAM roles, or AWS CLI config)
-                self.s3_client = boto3.client('s3', region_name=region_name)
-
-            self.logger.info(f"S3 client initialized for bucket: {bucket_name}")
-
-        except Exception as e:
-            self.logger.error(f"Failed to initialize S3 client: {e}")
-            raise
-
-    def upload_file(self, local_file_path: str, s3_key: Optional[str] = None) -> bool:
-        """
-        Upload a single file to S3
-
-        Args:
-            local_file_path: Path to the local file
-            s3_key: S3 object key (path in bucket). If None, uses filename
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        try:
-            # Convert to Path object for easier manipulation
-            file_path = Path(local_file_path)
-
-            if not file_path.exists():
-                self.logger.error(f"File not found: {local_file_path}")
-                return False
-
-            # Generate S3 key if not provided
-            if s3_key is None:
-                s3_key = file_path.name
-
-            # Get file content type
-            content_type, _ = mimetypes.guess_type(local_file_path)
-            if content_type is None:
-                content_type = 'binary/octet-stream'
-
-            # Upload file
-            extra_args = {'ContentType': content_type}
-
-            self.s3_client.upload_file(
-                str(file_path),
-                self.bucket_name,
-                s3_key,
-                ExtraArgs=extra_args
-            )
-
-            self.logger.info(f"Successfully uploaded: {local_file_path} -> s3://{self.bucket_name}/{s3_key}")
-            return True
-
-        except FileNotFoundError:
-            self.logger.error(f"File not found: {local_file_path}")
-            return False
-        except NoCredentialsError:
-            self.logger.error("AWS credentials not found")
-            return False
-        except ClientError as e:
-            self.logger.error(f"AWS error uploading {local_file_path}: {e}")
-            return False
-        except Exception as e:
-            self.logger.error(f"Unexpected error uploading {local_file_path}: {e}")
-            return False
-
-    def upload_directory(self, local_directory: str, s3_prefix: str = "",
-                        preserve_structure: bool = True) -> dict:
-        """
-        Upload all files in a directory to S3
-
-        Args:
-            local_directory: Path to the local directory
-            s3_prefix: Prefix to add to S3 keys (like a folder path)
-            preserve_structure: Whether to preserve directory structure in S3
-
-        Returns:
-            dict: Summary of upload results
-        """
-        results = {
-            'total_files': 0,
-            'successful_uploads': 0,
-            'failed_uploads': 0,
-            'uploaded_files': [],
-            'failed_files': []
-        }
-
-        try:
-            directory_path = Path(local_directory)
-
-            if not directory_path.exists():
-                self.logger.error(f"Directory not found: {local_directory}")
-                return results
-
-            if not directory_path.is_dir():
-                self.logger.error(f"Path is not a directory: {local_directory}")
-                return results
-
-            # Get all files recursively
-            all_files = []
-            for file_path in directory_path.rglob('*'):
-                if file_path.is_file():
-                    all_files.append(file_path)
-
-            results['total_files'] = len(all_files)
-            self.logger.info(f"Found {len(all_files)} files to upload from {local_directory}")
-
-            for file_path in all_files:
-                if preserve_structure:
-                    # Maintain directory structure
-                    relative_path = file_path.relative_to(directory_path)
-                    s3_key = f"{s3_prefix}/{relative_path}" if s3_prefix else str(relative_path)
-                else:
-                    # Flat structure - just filename
-                    s3_key = f"{s3_prefix}/{file_path.name}" if s3_prefix else file_path.name
-
-                # Replace backslashes with forward slashes for S3
-                s3_key = s3_key.replace('\\', '/')
-
-                if self.upload_file(str(file_path), s3_key):
-                    results['successful_uploads'] += 1
-                    results['uploaded_files'].append({
-                        'local_path': str(file_path),
-                        's3_key': s3_key,
-                        'size_bytes': file_path.stat().st_size
-                    })
-                else:
-                    results['failed_uploads'] += 1
-                    results['failed_files'].append(str(file_path))
-
-            self.logger.info(f"Upload complete: {results['successful_uploads']}/{results['total_files']} files uploaded successfully")
-
-        except Exception as e:
-            self.logger.error(f"Error uploading directory {local_directory}: {e}")
-
-        return results
-
-    def list_bucket_objects(self, prefix: str = "") -> List[str]:
-        """
-        List objects in the S3 bucket
-
-        Args:
-            prefix: Filter objects by prefix
-
-        Returns:
-            List[str]: List of object keys
-        """
-        try:
-            objects = []
-            paginator = self.s3_client.get_paginator('list_objects_v2')
-
-            for page in paginator.paginate(Bucket=self.bucket_name, Prefix=prefix):
-                if 'Contents' in page:
-                    for obj in page['Contents']:
-                        objects.append(obj['Key'])
-
-            return objects
-
-        except Exception as e:
-            self.logger.error(f"Error listing bucket objects: {e}")
-            return []
-
-
-def main():
-    """
-    Main function to upload files from downloads directory to S3
-    """
-    # Configuration - modify these values as needed
-    BUCKET_NAME = "your-bucket-name"  # Replace with your actual bucket name
-    DOWNLOADS_DIR = "downloads_2025"   # Directory containing files to upload
-    S3_PREFIX = f"dow30-earnings/{datetime.now().strftime('%Y-%m-%d')}"  # S3 folder structure
-
-    # AWS credentials (optional - can use environment variables or IAM roles)
-    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-    AWS_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
-
-    try:
-        # Initialize uploader
-        uploader = S3Uploader(
-            bucket_name=BUCKET_NAME,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-            region_name=AWS_REGION
-        )
-
-        # Upload all files from downloads directory
-        print(f"Starting upload of files from {DOWNLOADS_DIR} to S3 bucket {BUCKET_NAME}")
-        print(f"S3 prefix: {S3_PREFIX}")
-
-        results = uploader.upload_directory(
-            local_directory=DOWNLOADS_DIR,
-            s3_prefix=S3_PREFIX,
-            preserve_structure=True
-        )
-
-        # Print summary
-        print("\n" + "="*50)
-        print("UPLOAD SUMMARY")
-        print("="*50)
-        print(f"Total files found: {results['total_files']}")
-        print(f"Successfully uploaded: {results['successful_uploads']}")
-        print(f"Failed uploads: {results['failed_uploads']}")
-
-        if results['failed_files']:
-            print(f"\nFailed files:")
-            for failed_file in results['failed_files']:
-                print(f"  - {failed_file}")
-
-        # Calculate total size uploaded
-        total_size = sum(file_info['size_bytes'] for file_info in results['uploaded_files'])
-        total_size_mb = total_size / (1024 * 1024)
-        print(f"\nTotal data uploaded: {total_size_mb:.2f} MB")
-
-        print(f"\nAll uploaded files are available at: s3://{BUCKET_NAME}/{S3_PREFIX}/")
-
-    except Exception as e:
-        print(f"Error: {e}")
-        return 1
-
-    return 0
-
-
-if __name__ == "__main__":
-    exit(main())
-</file>
-
-<file path="output/ir_finder_results.json">
-{
-  "start_time": "2025-10-09T20:13:54.869786",
-  "companies_processed": [
-    {
-      "ticker": "AAPL",
-      "company_name": "Apple Inc.",
-      "company_url": "https://www.apple.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.apple.com/investor-relations/default.aspx",
-      "ir_page_title": "Investor Relations - Apple",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 110,
-      "timestamp": "2025-10-09T20:13:59.463950",
-      "error": null
-    },
-    {
-      "ticker": "AMGN",
-      "company_name": "Amgen Inc.",
-      "company_url": "https://www.amgen.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.amgen.com/",
-      "ir_page_title": "Investors | Amgen Inc.",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 55,
-      "timestamp": "2025-10-09T20:14:05.765850",
-      "error": null
-    },
-    {
-      "ticker": "AMZN",
-      "company_name": "Amazon.com Inc.",
-      "company_url": "https://www.amazon.com",
-      "ir_page_found": true,
-      "ir_url": "https://ir.aboutamazon.com/overview/default.aspx",
-      "ir_page_title": "Amazon.com, Inc. - Overview",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 85,
-      "timestamp": "2025-10-09T20:14:12.417561",
-      "error": null
-    },
-    {
-      "ticker": "AXP",
-      "company_name": "American Express",
-      "company_url": "https://www.americanexpress.com",
-      "ir_page_found": true,
-      "ir_url": "https://ir.americanexpress.com/investor-relations/default.aspx",
-      "ir_page_title": "American Express Company - Investor Relations",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 125,
-      "timestamp": "2025-10-09T20:14:20.944705",
-      "error": null
-    },
-    {
-      "ticker": "BA",
-      "company_name": "Boeing",
-      "company_url": "https://www.boeing.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.boeing.com/investors/overview/default.aspx",
-      "ir_page_title": "Boeing Company - Investors - Overview",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 95,
-      "timestamp": "2025-10-09T20:14:27.130381",
-      "error": null
-    },
-    {
-      "ticker": "CAT",
-      "company_name": "Caterpillar",
-      "company_url": "https://www.caterpillar.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.caterpillar.com/overview/default.aspx",
-      "ir_page_title": "Caterpillar Inc. - Overview",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 100,
-      "timestamp": "2025-10-09T20:14:32.701172",
-      "error": null
-    },
-    {
-      "ticker": "CRM",
-      "company_name": "Salesforce",
-      "company_url": "https://www.salesforce.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.salesforce.com/overview/default.aspx",
-      "ir_page_title": "Salesforce.com, Inc. - Salesforce Investor Relations",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 65,
-      "timestamp": "2025-10-09T20:14:39.195724",
-      "error": null
-    },
-    {
-      "ticker": "CSCO",
-      "company_name": "Cisco",
-      "company_url": "https://www.cisco.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.cisco.com/home/default.aspx",
-      "ir_page_title": "Investor Relations - Overview - Cisco",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 125,
-      "timestamp": "2025-10-09T20:14:46.167391",
-      "error": null
-    },
-    {
-      "ticker": "CVX",
-      "company_name": "Chevron",
-      "company_url": "https://www.chevron.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.chevron.com/",
-      "ir_page_title": "Privacy error",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 20,
-      "timestamp": "2025-10-09T20:14:52.413253",
-      "error": null
-    },
-    {
-      "ticker": "DIS",
-      "company_name": "The Walt Disney Company",
-      "company_url": "https://thewaltdisneycompany.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.thewaltdisneycompany.com/",
-      "ir_page_title": "Investor Relations - Stock Information, Events, Reports, Financial Information, Shareholder Information - The Walt Disney Company",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 65,
-      "timestamp": "2025-10-09T20:14:57.824068",
-      "error": null
-    },
-    {
-      "ticker": "GS",
-      "company_name": "Goldman Sachs",
-      "company_url": "https://www.goldmansachs.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.goldmansachs.com/investor",
-      "ir_page_title": "404 | Goldman Sachs",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 40,
-      "timestamp": "2025-10-09T20:15:02.304997",
-      "error": null
-    },
-    {
-      "ticker": "HD",
-      "company_name": "The Home Depot",
-      "company_url": "https://www.homedepot.com",
-      "ir_page_found": true,
-      "ir_url": "https://ir.homedepot.com/",
-      "ir_page_title": "The Home Depot",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 80,
-      "timestamp": "2025-10-09T20:15:09.507162",
-      "error": null
-    },
-    {
-      "ticker": "HON",
-      "company_name": "Honeywell",
-      "company_url": "https://www.honeywell.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.honeywell.com/",
-      "ir_page_title": "Investor Relations | Honeywell International Inc.",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 90,
-      "timestamp": "2025-10-09T20:15:18.967673",
-      "error": null
-    },
-    {
-      "ticker": "IBM",
-      "company_name": "IBM",
-      "company_url": "https://www.ibm.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.ibm.com/investor",
-      "ir_page_title": "Investor Relations | IBM",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 80,
-      "timestamp": "2025-10-09T20:15:25.481367",
-      "error": null
-    },
-    {
-      "ticker": "JNJ",
-      "company_name": "Johnson & Johnson",
-      "company_url": "https://www.jnj.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.jnj.com/overview/default.aspx",
-      "ir_page_title": "Investor Relations | Johnson & Johnson",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 90,
-      "timestamp": "2025-10-09T20:15:34.691742",
-      "error": null
-    },
-    {
-      "ticker": "JPM",
-      "company_name": "JPMorgan Chase",
-      "company_url": "https://www.jpmorganchase.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.jpmorganchase.com/",
-      "ir_page_title": "Home | JPMorganChase",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 35,
-      "timestamp": "2025-10-09T20:15:41.915717",
-      "error": null
-    },
-    {
-      "ticker": "KO",
-      "company_name": "Coca-Cola",
-      "company_url": "https://www.coca-colacompany.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.coca-colacompany.com/",
-      "ir_page_title": "The Coca-Cola Company (KO)",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 70,
-      "timestamp": "2025-10-09T20:15:49.441922",
-      "error": null
-    },
-    {
-      "ticker": "MCD",
-      "company_name": "McDonald's",
-      "company_url": "https://corporate.mcdonalds.com",
-      "ir_page_found": true,
-      "ir_url": "https://corporate.mcdonalds.com/investors",
-      "ir_page_title": "404 Not Found",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 20,
-      "timestamp": "2025-10-09T20:15:54.319573",
-      "error": null
-    },
-    {
-      "ticker": "MMM",
-      "company_name": "3M",
-      "company_url": "https://www.3m.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.3m.com/",
-      "ir_page_title": "3M Company (MMM)",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 105,
-      "timestamp": "2025-10-09T20:16:00.919320",
-      "error": null
-    },
-    {
-      "ticker": "MRK",
-      "company_name": "Merck",
-      "company_url": "https://www.merck.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.merck.com/investor-relations/",
-      "ir_page_title": "Investor relations - Merck.com",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 100,
-      "timestamp": "2025-10-09T20:16:07.850560",
-      "error": null
-    },
-    {
-      "ticker": "MSFT",
-      "company_name": "Microsoft",
-      "company_url": "https://www.microsoft.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.microsoft.com/en-us/investor/default",
-      "ir_page_title": "Home page",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 75,
-      "timestamp": "2025-10-09T20:16:15.682782",
-      "error": null
-    },
-    {
-      "ticker": "NKE",
-      "company_name": "Nike",
-      "company_url": "https://www.nike.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.nike.com/Home/default.aspx",
-      "ir_page_title": "NIKE, Inc. - Investor Relations - Home",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 65,
-      "timestamp": "2025-10-09T20:16:22.318513",
-      "error": null
-    },
-    {
-      "ticker": "NVDA",
-      "company_name": "NVIDIA",
-      "company_url": "https://www.nvidia.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.nvidia.com/home/default.aspx",
-      "ir_page_title": "NVIDIA Corporation - Home",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 100,
-      "timestamp": "2025-10-09T20:16:28.643311",
-      "error": null
-    },
-    {
-      "ticker": "PG",
-      "company_name": "Procter & Gamble",
-      "company_url": "https://us.pg.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.pginvestor.com/overview/default.aspx",
-      "ir_page_title": "Investor Relations | Procter & Gamble Investor Relations",
-      "strategy_used": "link_navigation",
-      "verification_score": 100,
-      "timestamp": "2025-10-09T20:16:34.841651",
-      "error": null
-    },
-    {
-      "ticker": "SHW",
-      "company_name": "The Sherwin-Williams Company",
-      "company_url": "https://www.sherwin-williams.com",
-      "ir_page_found": true,
-      "ir_url": "https://investors.sherwin-williams.com/investor-home/default.aspx",
-      "ir_page_title": "Sherwin-Williams - Investor Relations",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 80,
-      "timestamp": "2025-10-09T20:16:57.235735",
-      "error": null
-    },
-    {
-      "ticker": "TRV",
-      "company_name": "Travelers",
-      "company_url": "https://www.travelers.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.travelers.com/home/default.aspx",
-      "ir_page_title": "Travelers Investor Relations | Home",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 110,
-      "timestamp": "2025-10-09T20:17:03.881252",
-      "error": null
-    },
-    {
-      "ticker": "UNH",
-      "company_name": "UnitedHealth Group",
-      "company_url": "https://www.unitedhealthgroup.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.unitedhealthgroup.com/investors.html",
-      "ir_page_title": "Investor Information - UnitedHealth Group",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 110,
-      "timestamp": "2025-10-09T20:17:09.501355",
-      "error": null
-    },
-    {
-      "ticker": "V",
-      "company_name": "Visa",
-      "company_url": "https://www.visa.com",
-      "ir_page_found": true,
-      "ir_url": "https://investor.visa.com/",
-      "ir_page_title": "Visa - Investor Relations",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 100,
-      "timestamp": "2025-10-09T20:17:23.283355",
-      "error": null
-    },
-    {
-      "ticker": "VZ",
-      "company_name": "Verizon",
-      "company_url": "https://www.verizon.com",
-      "ir_page_found": true,
-      "ir_url": "https://www.verizon.com/about/investors",
-      "ir_page_title": "Investor & Shareholder Hub for News & Events | About Verizon",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 95,
-      "timestamp": "2025-10-09T20:17:29.445272",
-      "error": null
-    },
-    {
-      "ticker": "WMT",
-      "company_name": "Walmart",
-      "company_url": "https://corporate.walmart.com",
-      "ir_page_found": true,
-      "ir_url": "https://stock.walmart.com/",
-      "ir_page_title": "Walmart Inc. (WMT)",
-      "strategy_used": "subdomain_pattern",
-      "verification_score": 75,
-      "timestamp": "2025-10-09T20:18:04.937664",
-      "error": null
-    }
-  ],
-  "success_count": 30,
-  "failure_count": 0,
-  "dow30_updated": "November 8, 2024",
-  "end_time": "2025-10-09T20:18:15.568361"
-}
-</file>
-
-<file path="output/ir_finder_summary.txt">
-============================================================
-INVESTOR RELATIONS PAGE FINDER - SUMMARY REPORT
-============================================================
-
-Session Start: 2025-10-09T20:13:54.869786
-Session End: 2025-10-09T20:18:15.568361
-Dow 30 List Updated: November 8, 2024
-
-Total Companies: 30
-Successful: 30
-Failed: 0
-Success Rate: 30/30 (100.0%)
-
-STRATEGIES USED:
-----------------------------------------
-subdomain_pattern: 29
-link_navigation: 1
-
-SUCCESSFUL COMPANIES:
-----------------------------------------
-AAPL: https://investor.apple.com/investor-relations/default.aspx
-  Strategy: subdomain_pattern
-  Score: 110
-AMGN: https://investors.amgen.com/
-  Strategy: subdomain_pattern
-  Score: 55
-AMZN: https://ir.aboutamazon.com/overview/default.aspx
-  Strategy: subdomain_pattern
-  Score: 85
-AXP: https://ir.americanexpress.com/investor-relations/default.aspx
-  Strategy: subdomain_pattern
-  Score: 125
-BA: https://investors.boeing.com/investors/overview/default.aspx
-  Strategy: subdomain_pattern
-  Score: 95
-CAT: https://investors.caterpillar.com/overview/default.aspx
-  Strategy: subdomain_pattern
-  Score: 100
-CRM: https://investor.salesforce.com/overview/default.aspx
-  Strategy: subdomain_pattern
-  Score: 65
-CSCO: https://investor.cisco.com/home/default.aspx
-  Strategy: subdomain_pattern
-  Score: 125
-CVX: https://investor.chevron.com/
-  Strategy: subdomain_pattern
-  Score: 20
-DIS: https://investors.thewaltdisneycompany.com/
-  Strategy: subdomain_pattern
-  Score: 65
-GS: https://www.goldmansachs.com/investor
-  Strategy: subdomain_pattern
-  Score: 40
-HD: https://ir.homedepot.com/
-  Strategy: subdomain_pattern
-  Score: 80
-HON: https://investor.honeywell.com/
-  Strategy: subdomain_pattern
-  Score: 90
-IBM: https://www.ibm.com/investor
-  Strategy: subdomain_pattern
-  Score: 80
-JNJ: https://investor.jnj.com/overview/default.aspx
-  Strategy: subdomain_pattern
-  Score: 90
-JPM: https://www.jpmorganchase.com/
-  Strategy: subdomain_pattern
-  Score: 35
-KO: https://investors.coca-colacompany.com/
-  Strategy: subdomain_pattern
-  Score: 70
-MCD: https://corporate.mcdonalds.com/investors
-  Strategy: subdomain_pattern
-  Score: 20
-MMM: https://investors.3m.com/
-  Strategy: subdomain_pattern
-  Score: 105
-MRK: https://www.merck.com/investor-relations/
-  Strategy: subdomain_pattern
-  Score: 100
-MSFT: https://www.microsoft.com/en-us/investor/default
-  Strategy: subdomain_pattern
-  Score: 75
-NKE: https://investors.nike.com/Home/default.aspx
-  Strategy: subdomain_pattern
-  Score: 65
-NVDA: https://investor.nvidia.com/home/default.aspx
-  Strategy: subdomain_pattern
-  Score: 100
-PG: https://www.pginvestor.com/overview/default.aspx
-  Strategy: link_navigation
-  Score: 100
-SHW: https://investors.sherwin-williams.com/investor-home/default.aspx
-  Strategy: subdomain_pattern
-  Score: 80
-TRV: https://investor.travelers.com/home/default.aspx
-  Strategy: subdomain_pattern
-  Score: 110
-UNH: https://www.unitedhealthgroup.com/investors.html
-  Strategy: subdomain_pattern
-  Score: 110
-V: https://investor.visa.com/
-  Strategy: subdomain_pattern
-  Score: 100
-VZ: https://www.verizon.com/about/investors
-  Strategy: subdomain_pattern
-  Score: 95
-WMT: https://stock.walmart.com/
-  Strategy: subdomain_pattern
-  Score: 75
-
-FAILED COMPANIES:
-----------------------------------------
-</file>
-
-<file path=".env.example">
-# AWS S3 Configuration
-AWS_ACCESS_KEY_ID=your_access_key_here
-AWS_SECRET_ACCESS_KEY=your_secret_key_here
-AWS_DEFAULT_REGION=us-east-1
-S3_BUCKET_NAME=your-bucket-name
-
-# Optional: Custom S3 prefix for organizing files
-S3_PREFIX=dow30-earnings
-
-# Local directories
-DOWNLOADS_DIR=Data
-</file>
-
-<file path="File_Downloader_v2.py">
-#!/usr/bin/env python3
-"""
-AGGRESSIVE QUARTERLY REPORT DOWNLOADER (v3 - no explicit years)
-================================================================
-•⁠  ⁠Headless Selenium + Requests
-•⁠  ⁠IR-only scope (same registrable domain + trusted IR CDNs)
-•⁠  ⁠Robust cookie consent handling (OneTrust/TrustArc/Quantcast/Generic)
-•⁠  ⁠Scrolls to load lazy content
-•⁠  ⁠*No hardcoded years* — always tries to fetch the latest by:
-    * Page order (top-most first)
-    * Strong "quarterly" cues (Q1/Q2/Q3/Q4, "quarter", "earnings", "10‑Q")
-    * Artifact type preference: 10-Q > press release > presentation > supplement
-•⁠  ⁠Follows "Learn more / Read more" detail pages (e.g., Caterpillar, 3M)
-•⁠  ⁠SEC Filings route when needed (grabs the most recent 10‑Q row)
-•⁠  ⁠Saves only PDF / PPT / PPTX (no HTML)
-
-Inputs
-------
-•⁠  ⁠dow30_with_ir_pages.csv (ticker, company, ir_page[, found])
-
-Outputs
--------
-quarterly_reports/TICKER/*.pdf|.pptx|.ppt
-quarterly_reports/_logs/debug.jsonl
-"""
-
-import os, re, time, json, warnings
-from datetime import datetime
-from urllib.parse import urljoin, urlparse
-
-import requests
-import pandas as pd
-from bs4 import BeautifulSoup
-
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
-warnings.filterwarnings("ignore")
-
-ALLOWED_IR_ASSET_DOMAINS = (
-    "q4cdn.com","gcs-web.com","kscope.io","corporate-ir.net","equisolve.net",
-    "investis.com","tools.investis.com","otp.tools.investis.com",
-    "d18rn0p25nwr6d.cloudfront.net"
-)
-DOC_EXTS = (".pdf", ".ppt", ".pptx")
-
-QUARTER_CUES = [
-    "q1","q2","q3","q4",
-    "first quarter","second quarter","third quarter","fourth quarter",
-    "quarterly","quarter","quarter ended",
-    "earnings","financial results","results"
-]
-SEC_10Q_TERMS = ["10-q","form 10-q","10q"]
-EARNINGS_RELEASE_TERMS = ["press release","news release","earnings release","release"]
-PRESENTATION_TERMS = ["presentation","slides","deck","earnings call presentation","investor presentation","earnings presentation"]
-SUPPLEMENT_TERMS = ["supplement","supplemental","tables","financial supplement","statistical supplement"]
-
-PREF_KIND_SCORE = {"10q": 1000, "release": 800, "presentation": 700, "supplement": 600, "other": 100}
-
-def safe_dir(p): os.makedirs(p, exist_ok=True); return p
-
-def base_domain(h):
-    p = (h or "").lower().split(".")
-    return ".".join(p[-2:]) if len(p) >= 2 else (h or "").lower()
-
-def is_allowed_ir_link(page_url, target_url):
-    a = base_domain(urlparse(page_url).hostname)
-    b = base_domain(urlparse(target_url).hostname)
-    if a == b: return True
-    host = (urlparse(target_url).hostname or "").lower()
-    return any(host.endswith(d) for d in ALLOWED_IR_ASSET_DOMAINS)
-
-def is_pdfish_url(href: str) -> bool:
-    h = (href or "").lower()
-    return (h.endswith(DOC_EXTS) or "/static-files/" in h or "/-/media/" in h or "document" in h or "download" in h)
-
-def classify_kind(text_href: str) -> str:
-    t = (text_href or "").lower()
-    if any(k in t for k in SEC_10Q_TERMS): return "10q"
-    if any(k in t for k in EARNINGS_RELEASE_TERMS): return "release"
-    if any(k in t for k in PRESENTATION_TERMS): return "presentation"
-    if any(k in t for k in SUPPLEMENT_TERMS): return "supplement"
-    return "other"
-
-def text_is_quarterly(s: str) -> bool:
-    t = (s or "").lower()
-    return any(k in t for k in QUARTER_CUES) or any(k in t for k in SEC_10Q_TERMS)
-
-class AggressiveQuarterlyDownloaderV3:
-    def __init__(self, outdir="quarterly_reports", per_company=2):
-        self.outdir = safe_dir(outdir)
-        self.logdir = safe_dir(os.path.join(self.outdir, "_logs"))
-        self.per_company = per_company
-        # Create unique session identifier to avoid conflicts
-        import uuid
-        self.session_id = str(uuid.uuid4())[:8]
-        self.session = requests.Session()
-        self.session.headers.update({"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
-        self.driver = self._setup_selenium()
-        self.stats = {"processed":0,"successful":0,"failed":[], "total_files":0, "session_id":self.session_id}
-
-        # Minimal IR overrides (expand if your CSV lacks IR URLs)
-        self.ir_overrides = {
-            "PG":"https://www.pginvestor.com/",
-            "DIS":"https://thewaltdisneycompany.com/investor-relations/",
-            "JPM":"https://www.jpmorganchase.com/ir",
-        }
-
-        # Per-company nudges only for navigation shape (no year assumptions)
-        self.special = {"AMGN":self._strategy_amgn, "GS":self._strategy_gs, "MMM":self._strategy_mmm,
-                        "MSFT":self._strategy_msft, "V":self._strategy_visa}
-
-    def _log(self, obj):
-        with open(os.path.join(self.logdir, "debug.jsonl"), "a", encoding="utf-8") as f:
-            f.write(json.dumps(obj, default=str) + "\n")
-
-    def _setup_selenium(self):
-        options = Options()
-        options.add_argument("--headless=new")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1920,1080")
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-
-        # Create unique user data directory for this session to avoid conflicts
-        import tempfile
-        user_data_dir = tempfile.mkdtemp(prefix=f"chrome_session_{self.session_id}_")
-        options.add_argument(f"--user-data-dir={user_data_dir}")
-
-        # Additional isolation arguments
-        options.add_argument("--disable-web-security")
-        options.add_argument("--disable-features=VizDisplayCompositor")
-        options.add_argument(f"--remote-debugging-port=0")  # Let Chrome pick a random port
-
-        prefs={"profile.default_content_setting_values.images":2,"download.prompt_for_download":False}
-        options.add_experimental_option("prefs", prefs)
-
-        # Retry logic for driver creation
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                driver = webdriver.Chrome(options=options)
-                driver.set_page_load_timeout(40)
-                print(f"Chrome driver initialized successfully for session {self.session_id} (attempt {attempt + 1})")
-                return driver
-            except Exception as e:
-                print(f"Failed to initialize Chrome driver (attempt {attempt + 1}/{max_retries}): {e}")
-                if attempt == max_retries - 1:
-                    raise
-                time.sleep(2)  # Wait before retry
-
-    def _accept_cookies(self):
-        XPATHS = [
-            "//button[contains(@id,'onetrust-accept-btn')]",
-            "//button[contains(@class,'onetrust-accept-btn-handler')]",
-            "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept all')]",
-            "//button[contains(@class,'css') and contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
-            "//a[contains(@class,'trustarc') and contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
-            "//button[contains(@class,'truste-button') or contains(@class,'trustarc')]",
-            "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
-            "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'agree')]",
-            "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'allow')]",
-            "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
-            "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'agree')]"
-        ]
-        for xp in XPATHS:
-            try:
-                elems = self.driver.find_elements(By.XPATH, xp)
-                for el in elems:
-                    if el.is_displayed():
-                        self.driver.execute_script("arguments[0].click();", el)
-                        time.sleep(0.7)
-                        return True
-            except Exception:
-                continue
-        return False
-
-    def _scroll(self, cycles=6, pause=0.8):
-        last = 0
-        for _ in range(cycles):
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(pause)
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
-            time.sleep(0.4)
-            cur = self.driver.execute_script("return document.body.scrollHeight")
-            if cur == last: break
-            last = cur
-        self.driver.execute_script("window.scrollTo(0,0);")
-        time.sleep(0.5)
-
-    def _download_if_doc(self, ticker, url, title):
-        try:
-            r = self.session.get(url, timeout=30, allow_redirects=True, verify=False)
-            if r.status_code != 200: return False
-            ct = r.headers.get("content-type","").lower()
-            data = r.content or b""
-            ok_ct = any(x in ct for x in ["pdf","presentation","powerpoint","ms-powerpoint","officedocument.presentationml.presentation"])
-            ok_ext = any(url.lower().endswith(ext) for ext in DOC_EXTS)
-            ok_sniff = data.startswith(b"%PDF") or data[:4]==b"PK\x03\x04"
-            if not (ok_ct or ok_ext or ok_sniff): return False
-            base = safe_dir(os.path.join(self.outdir, ticker))
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            safe_title = re.sub(r"[^A-Za-z0-9]+","", (title or "Quarterly_Report")).strip("")[:60]
-            ext = ".pdf" if data.startswith(b"%PDF") or url.lower().endswith(".pdf") else (".pptx" if "presentationml" in ct or url.lower().endswith(".pptx") else ".ppt")
-            path = os.path.join(base, f"{ticker}{ts}{safe_title}{ext}")
-            with open(path,"wb") as f: f.write(data)
-            print(f"      ✅ Saved: {os.path.basename(path)}")
-            self.stats["total_files"] += 1
-            return True
-        except Exception as e:
-            self._log({"stage":"download","ticker":ticker,"url":url,"err":str(e)})
-            return False
-
-    def _collect_ranked_candidates_from_soup(self, soup):
-        """
-        Collect anchors that look quarterly or point to detail pages;
-        rank by kind preference and position (earlier is better).
-        """
-        candidates = []
-        idx = 0
-        for a in soup.find_all("a", href=True):
-            idx += 1
-            href = a["href"]
-            text = a.get_text(" ", strip=True) or ""
-            full = urljoin(self.driver.current_url, href)
-            if not is_allowed_ir_link(self.driver.current_url, full): 
-                continue
-            low = (text + " " + href).lower()
-            # direct artifact
-            if is_pdfish_url(href) and text_is_quarterly(low):
-                kind = classify_kind(low)
-                score = PREF_KIND_SCORE.get(kind, 0) - idx*0.01
-                candidates.append(("direct", full, text, kind, score))
-                continue
-            # detail page to follow
-            if (("learn more" in low) or ("read more" in low) or text_is_quarterly(low)) and not is_pdfish_url(href):
-                kind = classify_kind(low)
-                score = PREF_KIND_SCORE.get(kind, 0) - idx*0.01 - 5  # slight penalty for follow
-                candidates.append(("follow", full, text, kind, score))
-        # sort by score desc
-        candidates.sort(key=lambda x: x[4], reverse=True)
-        return candidates
-
-    def _harvest_from_detail_page(self, ticker, limit):
-        got = 0
-        inner = BeautifulSoup(self.driver.page_source, "html.parser")
-        for b in inner.find_all("a", href=True):
-            if got >= limit: break
-            href2 = b["href"]; full2 = urljoin(self.driver.current_url, href2)
-            if not is_allowed_ir_link(self.driver.current_url, full2): 
-                continue
-            low = (b.get_text(" ", strip=True) + " " + href2).lower()
-            if is_pdfish_url(href2) and text_is_quarterly(low):
-                t2 = b.get_text(" ", strip=True) or "Quarterly Artifact"
-                if self._download_if_doc(ticker, full2, t2): got += 1
-        # If still nothing, allow any doc-ish artifact on detail page
-        if got == 0:
-            for b in inner.find_all("a", href=True):
-                if got >= limit: break
-                href2 = b["href"]; full2 = urljoin(self.driver.current_url, href2)
-                if not is_allowed_ir_link(self.driver.current_url, full2): 
-                    continue
-                if is_pdfish_url(href2):
-                    t2 = b.get_text(" ", strip=True) or "Report"
-                    if self._download_if_doc(ticker, full2, t2): got += 1
-        return got
-
-    def _sec_filings_route(self, ticker, limit=2):
-        """Navigate to SEC filings page (if present) and download top-most 10‑Q artifacts."""
-        got = 0
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
-        sec_link = None
-        for a in soup.find_all("a", href=True):
-            t = a.get_text(" ", strip=True).lower()
-            if "sec filing" in t or "sec filings" in t or t == "sec":
-                sec_link = urljoin(self.driver.current_url, a["href"]); break
-        if not sec_link: 
-            return 0
-        try:
-            self.driver.get(sec_link); time.sleep(2); self._accept_cookies(); self._scroll(2)
-            inner = BeautifulSoup(self.driver.page_source, "html.parser")
-            # assume newest rows are first; take first rows that mention 10-Q
-            for row in inner.find_all(["tr","article","li","div"]):
-                if got >= limit: break
-                tx = row.get_text(" ", strip=True).lower()
-                if any(t in tx for t in SEC_10Q_TERMS):
-                    for a in row.find_all("a", href=True):
-                        if got >= limit: break
-                        href = a["href"]; full = urljoin(self.driver.current_url, href)
-                        if is_allowed_ir_link(self.driver.current_url, full) and is_pdfish_url(href):
-                            if self._download_if_doc(ticker, full, a.get_text(" ", strip=True)): got += 1
-            self.driver.back(); time.sleep(1.2)
-        except Exception as e:
-            self._log({"stage":"sec_filings","ticker":ticker,"err":str(e)})
-        return got
-
-    # --------- Per-company nudges (no year logic) ----------
-    def _strategy_amgn(self, ticker):
-        # Try "EARNINGS"/Presentations sections
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
-        for a in soup.find_all("a", href=True):
-            t = a.get_text(" ", strip=True).lower()
-            if any(k in t for k in ["earnings","presentations","events"]):
-                url = urljoin(self.driver.current_url, a["href"])
-                try:
-                    self.driver.get(url); time.sleep(2); self._accept_cookies(); self._scroll(3)
-                    got = self._generic_grab(ticker, limit=self.per_company)
-                    if got >= 1: return got
-                    self.driver.back(); time.sleep(1)
-                except Exception: continue
-        return 0
-
-    def _strategy_gs(self, ticker):
-        # Home often exposes "Form 10‑Q" tile; click then pick doc
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
-        for a in soup.find_all("a", href=True):
-            txt = a.get_text(" ", strip=True).lower()
-            if ("form 10-q" in txt or "10-q" in txt):
-                url = urljoin(self.driver.current_url, a["href"])
-                try:
-                    self.driver.get(url); time.sleep(2); self._accept_cookies(); self._scroll(2)
-                    got = self._harvest_from_detail_page(ticker, limit=self.per_company)
-                    if got >= 1: return got
-                    self.driver.back(); time.sleep(1)
-                except Exception: continue
-        return self._generic_grab(ticker, limit=self.per_company)
-
-    def _strategy_mmm(self, ticker):
-        return self._generic_grab(ticker, limit=self.per_company)
-
-    def _strategy_msft(self, ticker):
-        got = self._sec_filings_route(ticker, limit=self.per_company)
-        if got >= 1: return got
-        return self._generic_grab(ticker, limit=self.per_company)
-
-    def _strategy_visa(self, ticker):
-        self._accept_cookies()
-        return self._generic_grab(ticker, limit=self.per_company)
-
-    # ----------------------- Generic page harvesting ---------------------
-    def _generic_grab(self, ticker, limit=2):
-        got = 0
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
-        candidates = self._collect_ranked_candidates_from_soup(soup)
-        # Iterate candidates by score/position; prioritize direct artifacts first
-        for kind, url, text, _k, _score in candidates:
-            if got >= limit: break
-            if kind == "direct":
-                if self._download_if_doc(ticker, url, text): got += 1
-        # Then follow best "follow" candidates
-        if got < limit:
-            for kind, url, text, _k, _score in candidates:
-                if got >= limit: break
-                if kind != "follow": continue
-                try:
-                    self.driver.get(url); time.sleep(2); self._accept_cookies(); self._scroll(2)
-                    got += self._harvest_from_detail_page(ticker, limit=limit-got)
-                    self.driver.back(); time.sleep(1.2)
-                except Exception as e:
-                    self._log({"stage":"follow_click","ticker":ticker,"url":url,"err":str(e)})
-        # As last resort, SEC filings
-        if got < limit:
-            got += self._sec_filings_route(ticker, limit=limit-got)
-        return got
-
-    # ------------------------------ Main flow ---------------------------
-    def process_company(self, ticker, company, ir_url):
-        print("\n" + "="*80)
-        print(f"{ticker} - {company}")
-        print("="*80)
-        self.stats["processed"] += 1
-
-        if ticker in self.ir_overrides and (not ir_url or "pg" in ticker.lower() or base_domain(urlparse(ir_url).hostname) != base_domain(urlparse(self.ir_overrides[ticker]).hostname)):
-            ir_url = self.ir_overrides[ticker]
-            print(f"  🔧 Using IR override: {ir_url}")
-
-        try:
-            self.driver.get(ir_url); time.sleep(2.5)
-        except Exception as e:
-            print("  ❌ Load error")
-            self.stats["failed"].append(ticker)
-            self._log({"stage":"load","ticker":ticker,"err":str(e)})
-            return 0
-
-        self._accept_cookies()
-        self._scroll(6)
-
-        got = 0
-        if ticker in self.special:
-            try:
-                got = self.special[ticker](ticker)
-            except Exception as e:
-                self._log({"stage":"special","ticker":ticker,"err":str(e)})
-        if got < self.per_company:
-            got += self._generic_grab(ticker, limit=self.per_company-got)
-
-        if got >= 1:
-            self.stats["successful"] += 1
-        else:
-            self.stats["failed"].append(ticker)
-        return got
-
-    def close(self):
-        try:
-            if self.driver:
-                self.driver.quit()
-                print(f"Chrome driver closed for session {self.session_id}")
-        except Exception as e:
-            print(f"Error closing driver for session {self.session_id}: {e}")
-
-        # Clean up temporary Chrome user data directory
-        try:
-            import shutil
-            import glob
-            temp_dirs = glob.glob(f"/tmp/chrome_session_{self.session_id}_*")
-            for temp_dir in temp_dirs:
-                shutil.rmtree(temp_dir, ignore_errors=True)
-                print(f"Cleaned up temp directory: {temp_dir}")
-        except Exception as e:
-            print(f"Error cleaning up temp directories for session {self.session_id}: {e}")
-
-def main():
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Download quarterly reports from IR pages")
-    parser.add_argument("--json", default="output/ir_finder_results.json",
-                       help="Path to JSON file with IR page data")
-    parser.add_argument("--output", default="quarterly_reports",
-                       help="Output directory for downloads")
-    parser.add_argument("--companies", nargs="+",
-                       help="Specific company tickers to process (default: all)")
-    parser.add_argument("--per-company", type=int, default=2,
-                       help="Max files to download per company")
-
-    args = parser.parse_args()
-
-    print("="*80)
-    print("AGGRESSIVE QUARTERLY REPORT DOWNLOADER (v3 - JSON input)")
-    print("="*80)
-
-    # Load JSON data
-    if not os.path.exists(args.json):
-        print(f"❌ JSON file not found: {args.json}")
-        return
-
-    with open(args.json, 'r') as f:
-        data = json.load(f)
-
-    companies = data.get("companies_processed", [])
-    if args.companies:
-        # Filter to specific companies
-        companies = [c for c in companies if c["ticker"] in args.companies]
-
-    if not companies:
-        print("❌ No companies found to process")
-        return
-
-    print(f"🚀 Processing {len(companies)} companies...")
-
-    dl = AggressiveQuarterlyDownloaderV3(outdir=args.output, per_company=args.per_company)
-    start = time.time()
-
-    try:
-        for company in companies:
-            ticker = company.get("ticker", "").strip()
-            company_name = company.get("company_name", "").strip() or ticker
-            ir_url = company.get("ir_url", "").strip() if company.get("ir_page_found") else None
-
-            # Apply IR overrides if needed
-            if not ir_url and ticker in dl.ir_overrides:
-                ir_url = dl.ir_overrides[ticker]
-
-            if not ir_url:
-                print(f"\n{ticker} - {company_name}\n  ⚠️ Missing IR URL; skipping")
-                dl.stats["failed"].append(ticker)
-                continue
-
-            got = dl.process_company(ticker, company_name, ir_url)
-            print(f"  → Downloaded {got} files")
-            time.sleep(1.0)
-
-        elapsed = time.time() - start
-        print("\n" + "="*80)
-        print("FINAL SUMMARY")
-        print("="*80)
-        print(f"⏱️  Total time: {elapsed/60:.1f} minutes")
-        print(f"✅ Successful: {dl.stats['successful']}/{dl.stats['processed']}")
-        print(f"📊 Total files: {dl.stats['total_files']}")
-        if dl.stats["failed"]:
-            print("\nFAILED Tickers: " + ", ".join([t for t in dl.stats["failed"] if t]))
-        print(f"\nArtifacts saved under: {dl.outdir}/TICKER/*.pdf|.pptx|.ppt")
-        print(f"Debug log: {dl.logdir}/debug.jsonl")
-
-        # Save summary to JSON
-        summary = {
-            "timestamp": datetime.now().isoformat(),
-            "total_companies": len(companies),
-            "successful_downloads": dl.stats['successful'],
-            "total_files": dl.stats['total_files'],
-            "failed_tickers": dl.stats['failed'],
-            "processing_time_minutes": round(elapsed/60, 2)
-        }
-
-        summary_file = os.path.join(args.output, "download_summary.json")
-        with open(summary_file, 'w') as f:
-            json.dump(summary, f, indent=2)
-        print(f"📊 Summary saved to {summary_file}")
-
-    finally:
-        dl.close()
-
-if __name__ == "__main__":
-    main()
 </file>
 
 <file path="IR_extractor.py">
@@ -2516,9 +1384,1675 @@ if __name__ == "__main__":
     main()
 </file>
 
+<file path="requirements.txt">
+# Core Web Scraping
+selenium>=4.15.0
+webdriver-manager==4.0.1  # Auto-manages ChromeDriver
+requests>=2.31.0
+beautifulsoup4==4.12.2
+lxml>=4.9.3  # Parser for BeautifulSoup
+
+# Document Processing
+PyPDF2==3.0.1  # PDF parsing
+openpyxl==3.1.2  # Excel file handling
+pandas==2.2.0  # Data manipulation
+
+# AWS Integration
+boto3>=1.29.7  # AWS S3 uploads
+botocore>=1.32.7  # AWS core
+
+# Airflow (optional - comment out if not using Airflow)
+# apache-airflow==2.7.3
+# apache-airflow-providers-amazon==8.9.0
+
+# Utilities
+python-dotenv==1.0.0  # Environment variables
+urllib3==2.1.0  # URL handling
+
+# Development/Testing (optional)
+pytest==7.4.3
+pytest-timeout==2.2.0
+black==23.11.0  # Code formatting
+flake8==6.1.0  # Linting
+
+# --- AWS Integration ---
+boto3>=1.29.7
+botocore>=1.32.7
+
+# --- Database (RDS PostgreSQL) ---
+psycopg2-binary>=2.9.9
+python-dotenv>=1.0.0
+
+# --- Utilities ---
+urllib3==2.1.0
+
+# --- Dev / Test ---
+pytest==7.4.3
+pytest-timeout==2.2.0
+black==23.11.0
+flake8==6.1.0
+</file>
+
+<file path="s3_upload.py">
+#!/usr/bin/env python3
+"""
+Unified S3 Uploader - Raw Downloads + Parsed Documents
+------------------------------------------------------
+Uploads both raw PDFs and parsed documents to S3 with RDS metadata logging
+
+S3 Structure:
+  raw-documents/           <- Raw PDFs from downloads
+  └── TICKER/
+      └── *.pdf
+  
+  earnings-documents/      <- Parsed content
+  └── TICKER/
+      ├── images/
+      ├── text/
+      ├── json/
+      ├── markdown/
+      └── tables/
+
+Usage:
+    # Upload both raw and parsed
+    python s3_upload_unified.py --bucket doc-dow-30-2025
+    
+    # Upload only raw PDFs
+    python s3_upload_unified.py --bucket doc-dow-30-2025 --mode raw
+    
+    # Upload only parsed
+    python s3_upload_unified.py --bucket doc-dow-30-2025 --mode parsed
+    
+    # Specific ticker
+    python s3_upload_unified.py --bucket doc-dow-30-2025 --ticker AXP
+"""
+
+import os
+import json
+import logging
+import hashlib
+from pathlib import Path
+from datetime import datetime
+from typing import Dict, List, Optional
+import mimetypes
+import argparse
+
+import boto3
+from botocore.exceptions import ClientError, NoCredentialsError
+from tqdm import tqdm
+
+# Database imports
+try:
+    import psycopg2
+    from dotenv import load_dotenv
+    DB_AVAILABLE = True
+    load_dotenv()
+except ImportError:
+    DB_AVAILABLE = False
+    print("⚠️  Database libraries not installed. Install with: pip install psycopg2-binary python-dotenv")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+class DatabaseLogger:
+    """PostgreSQL logger for document metadata"""
+    
+    def __init__(self):
+        """Initialize database connection from .env file"""
+        if not DB_AVAILABLE:
+            self.connection = None
+            logger.warning("Database logging disabled")
+            return
+        
+        self.host = os.getenv('DB_HOST')
+        self.port = os.getenv('DB_PORT', '5432')
+        self.database = os.getenv('DB_NAME', 'earnings_db')
+        self.user = os.getenv('DB_USER', 'postgres')
+        self.password = os.getenv('DB_PASSWORD')
+        
+        self.connection = None
+        
+        if not all([self.host, self.password]):
+            logger.warning("Database credentials not in .env. Skipping DB logging.")
+            return
+        
+        try:
+            self.connection = psycopg2.connect(
+                host=self.host,
+                port=self.port,
+                database=self.database,
+                user=self.user,
+                password=self.password,
+                connect_timeout=10
+            )
+            logger.info("✓ Database connection established")
+        except Exception as e:
+            logger.warning(f"Database connection failed: {e}")
+            self.connection = None
+    
+    def log_document(self, metadata: Dict) -> bool:
+        """Log document metadata to database"""
+        if not self.connection:
+            return False
+        
+        try:
+            cursor = self.connection.cursor()
+            
+            insert_query = """
+                INSERT INTO documents_metadata (
+                    file_id, company_name, filename, file_path,
+                    file_extension, file_size_bytes, file_size_mb,
+                    document_type, document_subtype, source_url,
+                    source_domain, download_timestamp, s3_bucket
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                )
+                ON CONFLICT (file_id) DO UPDATE SET
+                    download_timestamp = EXCLUDED.download_timestamp;
+            """
+            
+            cursor.execute(insert_query, (
+                metadata['file_id'],
+                metadata['company_name'],
+                metadata['filename'],
+                metadata['file_path'],
+                metadata['file_extension'],
+                metadata['file_size_bytes'],
+                metadata['file_size_mb'],
+                metadata.get('document_type'),
+                metadata.get('document_subtype'),
+                metadata.get('source_url'),
+                metadata.get('source_domain'),
+                metadata['download_timestamp'],
+                metadata['s3_bucket']
+            ))
+            
+            self.connection.commit()
+            cursor.close()
+            return True
+            
+        except Exception as e:
+            logger.debug(f"Database insert failed: {e}")
+            if self.connection:
+                self.connection.rollback()
+            return False
+    
+    def close(self):
+        """Close database connection"""
+        if self.connection:
+            self.connection.close()
+            logger.info("Database connection closed")
+
+
+class UnifiedS3Uploader:
+    """Upload both raw downloads and parsed documents to S3"""
+    
+    def __init__(self, 
+                 bucket_name: str,
+                 downloads_root: str = "data/raw",
+                 parsed_root: str = "data/parsed",
+                 dry_run: bool = False,
+                 enable_db: bool = True):
+        """Initialize unified uploader"""
+        
+        self.bucket_name = bucket_name
+        self.downloads_root = Path(downloads_root)
+        self.parsed_root = Path(parsed_root)
+        self.dry_run = dry_run
+        
+        # Initialize S3
+        try:
+            self.s3_client = boto3.client('s3')
+            logger.info("✓ AWS S3 client initialized")
+        except NoCredentialsError:
+            logger.error("AWS credentials not found")
+            raise
+        
+        # Initialize database
+        self.db = None
+        if enable_db and not dry_run:
+            self.db = DatabaseLogger()
+        
+        # Stats
+        self.stats = {
+            'raw_files': 0,
+            'parsed_files': 0,
+            'total_files': 0,
+            'bytes_uploaded': 0,
+            'db_records': 0,
+            'failed': 0
+        }
+        
+        # MIME types
+        self.mime_types = {
+            '.pdf': 'application/pdf',
+            '.csv': 'text/csv',
+            '.json': 'application/json',
+            '.txt': 'text/plain',
+            '.md': 'text/markdown',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jsonl': 'application/jsonl'
+        }
+    
+    def generate_file_id(self, s3_key: str) -> str:
+        """Generate unique file ID"""
+        return hashlib.sha256(s3_key.encode()).hexdigest()[:64]
+    
+    def get_content_type(self, file_path: Path) -> str:
+        """Get content type"""
+        ext = file_path.suffix.lower()
+        if ext in self.mime_types:
+            return self.mime_types[ext]
+        content_type, _ = mimetypes.guess_type(str(file_path))
+        return content_type or 'application/octet-stream'
+    
+    def determine_document_type(self, file_path: Path, is_raw: bool = False) -> str:
+        """Determine document type"""
+        if is_raw:
+            return 'raw_pdf'
+        
+        path_str = str(file_path).lower()
+        if '/markdown/' in path_str:
+            return 'markdown'
+        elif '/tables/' in path_str:
+            return 'table'
+        elif '/images/' in path_str:
+            return 'image'
+        elif '/text/' in path_str:
+            return 'text'
+        elif '/json/' in path_str:
+            return 'structured_data'
+        else:
+            return 'other'
+    
+    def upload_file_with_metadata(self, local_path: Path, s3_key: str, 
+                                   ticker: str, is_raw: bool = False) -> bool:
+        """Upload file to S3 and log metadata to RDS"""
+        try:
+            if self.dry_run:
+                return True
+            
+            file_size = local_path.stat().st_size
+            content_type = self.get_content_type(local_path)
+            
+            # Upload to S3
+            self.s3_client.upload_file(
+                str(local_path),
+                self.bucket_name,
+                s3_key,
+                ExtraArgs={'ContentType': content_type}
+            )
+            
+            # Update stats
+            if is_raw:
+                self.stats['raw_files'] += 1
+            else:
+                self.stats['parsed_files'] += 1
+            self.stats['total_files'] += 1
+            self.stats['bytes_uploaded'] += file_size
+            
+            # Log to database
+            if self.db and self.db.connection:
+                metadata = {
+                    'file_id': self.generate_file_id(s3_key),
+                    'company_name': ticker,
+                    'filename': local_path.name,
+                    'file_path': s3_key,
+                    'file_extension': local_path.suffix,
+                    'file_size_bytes': file_size,
+                    'file_size_mb': round(file_size / 1024 / 1024, 2),
+                    'document_type': self.determine_document_type(local_path, is_raw),
+                    'document_subtype': 'raw' if is_raw else 'parsed',
+                    'source_url': None,
+                    'source_domain': None,
+                    'download_timestamp': datetime.now(),
+                    's3_bucket': self.bucket_name
+                }
+                
+                if self.db.log_document(metadata):
+                    self.stats['db_records'] += 1
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"✗ Upload failed: {e}")
+            self.stats['failed'] += 1
+            return False
+    
+    def upload_raw_pdfs(self, ticker: str, ticker_dir: Path) -> Dict:
+        """Upload raw PDFs from downloads folder"""
+        result = {'ticker': ticker, 'raw_files': 0, 'bytes': 0}
+        
+        # Find all PDFs
+        pdf_files = list(ticker_dir.glob("*.pdf"))
+        if not pdf_files:
+            pdf_files = list(ticker_dir.rglob("*.pdf"))
+        
+        if not pdf_files:
+            logger.warning(f"No PDFs found for {ticker} in downloads")
+            return result
+        
+        logger.info(f"  Uploading {len(pdf_files)} raw PDFs...")
+        
+        for pdf_file in pdf_files:
+            # S3 key: raw-documents/TICKER/filename.pdf
+            s3_key = f"raw-documents/{ticker}/{pdf_file.name}"
+            
+            if self.upload_file_with_metadata(pdf_file, s3_key, ticker, is_raw=True):
+                result['raw_files'] += 1
+                result['bytes'] += pdf_file.stat().st_size
+        
+        return result
+    
+    def upload_parsed_files(self, ticker: str, ticker_dir: Path) -> Dict:
+        """Upload parsed files from parsed folder"""
+        result = {'ticker': ticker, 'parsed_files': 0, 'bytes': 0}
+        
+        # Find all files recursively
+        all_files = [f for f in ticker_dir.rglob('*') if f.is_file()]
+        
+        if not all_files:
+            logger.warning(f"No parsed files found for {ticker}")
+            return result
+        
+        logger.info(f"  Uploading {len(all_files)} parsed files...")
+        
+        with tqdm(all_files, desc=f"  {ticker} parsed", leave=False) as pbar:
+            for file_path in pbar:
+                # Get relative path from parsed_root
+                try:
+                    relative_path = file_path.relative_to(self.parsed_root)
+                    
+                    # Remove ticker from path if first
+                    parts = relative_path.parts
+                    if parts[0] == ticker:
+                        parts = parts[1:]
+                    
+                    # S3 key: earnings-documents/TICKER/folder/file
+                    s3_key = f"earnings-documents/{ticker}/{'/'.join(parts)}"
+                    
+                    if self.upload_file_with_metadata(file_path, s3_key, ticker, is_raw=False):
+                        result['parsed_files'] += 1
+                        result['bytes'] += file_path.stat().st_size
+                        
+                except Exception as e:
+                    logger.debug(f"Error uploading {file_path}: {e}")
+                    continue
+        
+        return result
+    
+    def upload_company_complete(self, ticker: str, mode: str = 'both') -> Dict:
+        """Upload both raw and parsed for a company"""
+        
+        logger.info(f"\n{'='*70}")
+        logger.info(f"Processing {ticker}")
+        logger.info(f"{'='*70}")
+        
+        result = {
+            'ticker': ticker,
+            'raw_files': 0,
+            'parsed_files': 0,
+            'total_files': 0,
+            'bytes': 0,
+            'status': 'success'
+        }
+        
+        # Upload raw PDFs
+        if mode in ['raw', 'both']:
+            downloads_dir = self.downloads_root / ticker
+            if downloads_dir.exists():
+                raw_result = self.upload_raw_pdfs(ticker, downloads_dir)
+                result['raw_files'] = raw_result['raw_files']
+                result['bytes'] += raw_result['bytes']
+                logger.info(f"  ✓ Raw PDFs: {raw_result['raw_files']} files")
+            else:
+                logger.warning(f"  Downloads folder not found: {downloads_dir}")
+        
+        # Upload parsed files
+        if mode in ['parsed', 'both']:
+            parsed_dir = self.parsed_root / ticker
+            if parsed_dir.exists():
+                parsed_result = self.upload_parsed_files(ticker, parsed_dir)
+                result['parsed_files'] = parsed_result['parsed_files']
+                result['bytes'] += parsed_result['bytes']
+                logger.info(f"  ✓ Parsed files: {parsed_result['parsed_files']} files")
+            else:
+                logger.warning(f"  Parsed folder not found: {parsed_dir}")
+        
+        result['total_files'] = result['raw_files'] + result['parsed_files']
+        
+        logger.info(f"  ✓ Total: {result['total_files']} files ({result['bytes']/1024/1024:.1f} MB)")
+        
+        return result
+    
+    def upload_all_companies(self, specific_ticker: Optional[str] = None, 
+                            mode: str = 'both') -> List[Dict]:
+        """Upload all companies"""
+        
+        # Find all tickers from both directories
+        tickers = set()
+        
+        if self.downloads_root.exists():
+            tickers.update(d.name for d in self.downloads_root.iterdir() if d.is_dir())
+        
+        if self.parsed_root.exists():
+            tickers.update(d.name for d in self.parsed_root.iterdir() if d.is_dir())
+        
+        if specific_ticker:
+            tickers = {specific_ticker} if specific_ticker in tickers else set()
+        
+        if not tickers:
+            logger.error("No companies found")
+            return []
+        
+        db_status = "Enabled" if (self.db and self.db.connection) else "Disabled"
+        
+        logger.info(f"\n{'='*70}")
+        logger.info(f"UNIFIED S3 UPLOAD - RAW + PARSED")
+        logger.info(f"{'='*70}")
+        logger.info(f"Bucket: {self.bucket_name}")
+        logger.info(f"Mode: {mode.upper()}")
+        logger.info(f"Downloads: {self.downloads_root}")
+        logger.info(f"Parsed: {self.parsed_root}")
+        logger.info(f"Companies: {len(tickers)}")
+        logger.info(f"Database: {db_status}")
+        logger.info(f"{'='*70}\n")
+        
+        start_time = datetime.now()
+        results = []
+        
+        # Upload each company
+        for idx, ticker in enumerate(sorted(tickers), 1):
+            logger.info(f"[{idx}/{len(tickers)}] {ticker}")
+            result = self.upload_company_complete(ticker, mode)
+            results.append(result)
+        
+        duration = (datetime.now() - start_time).total_seconds()
+        
+        # Summary
+        logger.info(f"\n{'='*70}")
+        logger.info(f"UPLOAD COMPLETE")
+        logger.info(f"{'='*70}")
+        logger.info(f"Duration: {duration:.1f}s ({duration/60:.1f} min)")
+        logger.info(f"Companies: {len(results)}")
+        logger.info(f"Raw PDFs: {self.stats['raw_files']}")
+        logger.info(f"Parsed files: {self.stats['parsed_files']}")
+        logger.info(f"Total files: {self.stats['total_files']}")
+        logger.info(f"Data uploaded: {self.stats['bytes_uploaded']/1024/1024:.1f} MB")
+        logger.info(f"DB records: {self.stats['db_records']}")
+        logger.info(f"Failed: {self.stats['failed']}")
+        logger.info(f"{'='*70}\n")
+        
+        return results
+    
+    def save_summary(self, results: List[Dict]):
+        """Save upload summary"""
+        summary = {
+            'timestamp': datetime.now().isoformat(),
+            'bucket': self.bucket_name,
+            'statistics': self.stats,
+            'companies': results
+        }
+        
+        summary_path = Path('upload_summary_unified.json')
+        with open(summary_path, 'w') as f:
+            json.dump(summary, f, indent=2, default=str)
+        
+        logger.info(f"Summary saved: {summary_path}")
+    
+    def verify_bucket(self) -> bool:
+        """Verify bucket exists"""
+        try:
+            self.s3_client.head_bucket(Bucket=self.bucket_name)
+            logger.info(f"✓ Bucket '{self.bucket_name}' verified")
+            return True
+        except ClientError:
+            logger.error(f"✗ Bucket '{self.bucket_name}' not accessible")
+            return False
+    
+    def close(self):
+        """Cleanup"""
+        if self.db:
+            self.db.close()
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Upload raw PDFs and parsed documents to S3'
+    )
+    parser.add_argument('--bucket', required=True, help='S3 bucket name')
+    parser.add_argument('--downloads-root', default='data/raw', 
+                       help='Raw downloads directory')
+    parser.add_argument('--parsed-root', default='data/parsed', 
+                       help='Parsed documents directory')
+    parser.add_argument('--ticker', help='Upload specific ticker only')
+    parser.add_argument('--mode', choices=['raw', 'parsed', 'both'], default='both',
+                       help='Upload mode: raw PDFs only, parsed only, or both')
+    parser.add_argument('--dry-run', action='store_true', help='Simulate upload')
+    parser.add_argument('--no-db', action='store_true', help='Disable database')
+    parser.add_argument('--debug', action='store_true', help='Debug logging')
+    
+    args = parser.parse_args()
+    
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+    
+    uploader = UnifiedS3Uploader(
+        bucket_name=args.bucket,
+        downloads_root=args.downloads_root,
+        parsed_root=args.parsed_root,
+        dry_run=args.dry_run,
+        enable_db=not args.no_db
+    )
+    
+    try:
+        if not uploader.verify_bucket():
+            return
+        
+        results = uploader.upload_all_companies(
+            specific_ticker=args.ticker,
+            mode=args.mode
+        )
+        
+        uploader.save_summary(results)
+        
+    finally:
+        uploader.close()
+
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="airflow/dags/dow30_earnings_pipeline.py">
+from datetime import datetime, timedelta
+from airflow import DAG
+from airflow.providers.standard.operators.bash import BashOperator
+import os
+
+default_args = {
+    'owner': 'airflow',
+    'depends_on_past': False,
+    'start_date': datetime(2025, 10, 8),
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+}
+
+# Define the DAG
+dag = DAG(
+    'dow30_earnings_pipeline',
+    default_args=default_args,
+    description='DOW 30 Earnings Intelligence Pipeline',
+    schedule=timedelta(days=1),
+    catchup=False,
+    tags=['dow30', 'earnings', 'intelligence'],
+)
+
+# Get the directory containing the DAG file
+dag_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(dag_dir))
+
+# Define tasks
+start_task = BashOperator(
+    task_id='start_pipeline',
+    bash_command='echo "Starting DOW 30 Earnings Intelligence Pipeline..."',
+    dag=dag,
+)
+
+ir_extractor_task = BashOperator(
+    task_id='ir_extractor',
+    bash_command=f'cd "{project_root}" && python3 IR_extractor.py',
+    dag=dag,
+)
+
+file_downloader_task = BashOperator(
+    task_id='file_downloader',
+    bash_command=f'cd "{project_root}" && python3 File_Downloader_v2.py',
+    dag=dag,
+)
+
+docling_parser_task = BashOperator(
+    task_id='docling_parser',
+    bash_command=f'cd "{project_root}" && python3 docling_parser.py --downloads data/raw --output data/parsed',
+    dag=dag,
+)
+
+upload_s3_task = BashOperator(
+    task_id='upload_s3',
+    bash_command=f'cd "{project_root}" && python3 s3_upload.py --bucket doc-dow-30-2025 --parsed-root data/parsed --ticker AXP'
+)
+
+end_task = BashOperator(
+    task_id='end_pipeline',
+    bash_command='echo "DOW 30 Earnings Intelligence Pipeline completed successfully!"',
+    dag=dag,
+)
+
+
+
+# Define task dependencies
+start_task >> ir_extractor_task >> file_downloader_task >> docling_parser_task >> upload_s3_task >> end_task
+</file>
+
+<file path="output/ir_finder_summary.txt">
+============================================================
+INVESTOR RELATIONS PAGE FINDER - SUMMARY REPORT
+============================================================
+
+Session Start: 2025-10-10T02:17:44.193732
+Session End: 2025-10-10T02:23:19.995308
+Dow 30 List Updated: November 8, 2024
+
+Total Companies: 30
+Successful: 30
+Failed: 0
+Success Rate: 30/30 (100.0%)
+
+STRATEGIES USED:
+----------------------------------------
+subdomain_pattern: 29
+link_navigation: 1
+
+SUCCESSFUL COMPANIES:
+----------------------------------------
+AAPL: https://investor.apple.com/investor-relations/default.aspx
+  Strategy: subdomain_pattern
+  Score: 110
+AMGN: https://investors.amgen.com/
+  Strategy: subdomain_pattern
+  Score: 55
+AMZN: https://ir.aboutamazon.com/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 85
+AXP: https://ir.americanexpress.com/investor-relations/default.aspx
+  Strategy: subdomain_pattern
+  Score: 125
+BA: https://investors.boeing.com/investors/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 95
+CAT: https://investors.caterpillar.com/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 100
+CRM: https://investor.salesforce.com/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 65
+CSCO: https://investor.cisco.com/home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 125
+CVX: https://investor.chevron.com/
+  Strategy: subdomain_pattern
+  Score: 20
+DIS: https://investors.thewaltdisneycompany.com/
+  Strategy: subdomain_pattern
+  Score: 65
+GS: https://www.goldmansachs.com/investor
+  Strategy: subdomain_pattern
+  Score: 40
+HD: https://ir.homedepot.com/
+  Strategy: subdomain_pattern
+  Score: 80
+HON: https://investor.honeywell.com/
+  Strategy: subdomain_pattern
+  Score: 90
+IBM: https://www.ibm.com/investor
+  Strategy: subdomain_pattern
+  Score: 80
+JNJ: https://investor.jnj.com/overview/default.aspx
+  Strategy: subdomain_pattern
+  Score: 90
+JPM: https://www.jpmorganchase.com/
+  Strategy: subdomain_pattern
+  Score: 35
+KO: https://investors.coca-colacompany.com/
+  Strategy: subdomain_pattern
+  Score: 70
+MCD: https://corporate.mcdonalds.com/investors
+  Strategy: subdomain_pattern
+  Score: 20
+MMM: https://investors.3m.com/
+  Strategy: subdomain_pattern
+  Score: 105
+MRK: https://www.merck.com/investor-relations/
+  Strategy: subdomain_pattern
+  Score: 100
+MSFT: https://www.microsoft.com/en-us/investor/default
+  Strategy: subdomain_pattern
+  Score: 75
+NKE: https://investors.nike.com/Home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 65
+NVDA: https://investor.nvidia.com/home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 100
+PG: https://www.pginvestor.com/overview/default.aspx
+  Strategy: link_navigation
+  Score: 100
+SHW: https://investors.sherwin-williams.com/investor-home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 80
+TRV: https://investor.travelers.com/home/default.aspx
+  Strategy: subdomain_pattern
+  Score: 110
+UNH: https://www.unitedhealthgroup.com/investors.html
+  Strategy: subdomain_pattern
+  Score: 110
+V: https://investor.visa.com/
+  Strategy: subdomain_pattern
+  Score: 100
+VZ: https://www.verizon.com/about/investors
+  Strategy: subdomain_pattern
+  Score: 95
+WMT: https://stock.walmart.com/
+  Strategy: subdomain_pattern
+  Score: 75
+
+FAILED COMPANIES:
+----------------------------------------
+</file>
+
 <file path=".repomixignore">
 ./Data/Raw/
 ./Data/Parsed/
+</file>
+
+<file path="File_Downloader_v2.py">
+#!/usr/bin/env python3
+"""
+AGGRESSIVE QUARTERLY REPORT DOWNLOADER (v3 - no explicit years)
+================================================================
+•⁠  ⁠Headless Selenium + Requests
+•⁠  ⁠IR-only scope (same registrable domain + trusted IR CDNs)
+•⁠  ⁠Robust cookie consent handling (OneTrust/TrustArc/Quantcast/Generic)
+•⁠  ⁠Scrolls to load lazy content
+•⁠  ⁠*No hardcoded years* — always tries to fetch the latest by:
+    * Page order (top-most first)
+    * Strong "quarterly" cues (Q1/Q2/Q3/Q4, "quarter", "earnings", "10‑Q")
+    * Artifact type preference: 10-Q > press release > presentation > supplement
+•⁠  ⁠Follows "Learn more / Read more" detail pages (e.g., Caterpillar, 3M)
+•⁠  ⁠SEC Filings route when needed (grabs the most recent 10‑Q row)
+•⁠  ⁠Saves only PDF / PPT / PPTX (no HTML)
+
+Inputs
+------
+•⁠  ⁠dow30_with_ir_pages.csv (ticker, company, ir_page[, found])
+
+Outputs
+-------
+quarterly_reports/TICKER/*.pdf|.pptx|.ppt
+quarterly_reports/_logs/debug.jsonl
+"""
+
+import os, re, time, json, warnings
+from datetime import datetime
+from urllib.parse import urljoin, urlparse
+
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+warnings.filterwarnings("ignore")
+
+ALLOWED_IR_ASSET_DOMAINS = (
+    "q4cdn.com","gcs-web.com","kscope.io","corporate-ir.net","equisolve.net",
+    "investis.com","tools.investis.com","otp.tools.investis.com",
+    "d18rn0p25nwr6d.cloudfront.net"
+)
+DOC_EXTS = (".pdf", ".ppt", ".pptx")
+
+QUARTER_CUES = [
+    "q1","q2","q3","q4",
+    "first quarter","second quarter","third quarter","fourth quarter",
+    "quarterly","quarter","quarter ended",
+    "earnings","financial results","results"
+]
+SEC_10Q_TERMS = ["10-q","form 10-q","10q"]
+EARNINGS_RELEASE_TERMS = ["press release","news release","earnings release","release"]
+PRESENTATION_TERMS = ["presentation","slides","deck","earnings call presentation","investor presentation","earnings presentation"]
+SUPPLEMENT_TERMS = ["supplement","supplemental","tables","financial supplement","statistical supplement"]
+
+PREF_KIND_SCORE = {"10q": 1000, "release": 800, "presentation": 700, "supplement": 600, "other": 100}
+
+def safe_dir(p): os.makedirs(p, exist_ok=True); return p
+
+def base_domain(h):
+    p = (h or "").lower().split(".")
+    return ".".join(p[-2:]) if len(p) >= 2 else (h or "").lower()
+
+def is_allowed_ir_link(page_url, target_url):
+    a = base_domain(urlparse(page_url).hostname)
+    b = base_domain(urlparse(target_url).hostname)
+    if a == b: return True
+    host = (urlparse(target_url).hostname or "").lower()
+    return any(host.endswith(d) for d in ALLOWED_IR_ASSET_DOMAINS)
+
+def is_pdfish_url(href: str) -> bool:
+    h = (href or "").lower()
+    return (h.endswith(DOC_EXTS) or "/static-files/" in h or "/-/media/" in h or "document" in h or "download" in h)
+
+def classify_kind(text_href: str) -> str:
+    t = (text_href or "").lower()
+    if any(k in t for k in SEC_10Q_TERMS): return "10q"
+    if any(k in t for k in EARNINGS_RELEASE_TERMS): return "release"
+    if any(k in t for k in PRESENTATION_TERMS): return "presentation"
+    if any(k in t for k in SUPPLEMENT_TERMS): return "supplement"
+    return "other"
+
+def text_is_quarterly(s: str) -> bool:
+    t = (s or "").lower()
+    return any(k in t for k in QUARTER_CUES) or any(k in t for k in SEC_10Q_TERMS)
+
+class AggressiveQuarterlyDownloaderV3:
+    def __init__(self, outdir="data/raw", per_company=2):
+        self.outdir = safe_dir(outdir)
+        self.logdir = safe_dir(os.path.join(self.outdir, "_logs"))
+        self.per_company = per_company
+        # Create unique session identifier to avoid conflicts
+        import uuid
+        self.session_id = str(uuid.uuid4())[:8]
+        self.session = requests.Session()
+        self.session.headers.update({"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+        self.driver = self._setup_selenium()
+        self.stats = {"processed":0,"successful":0,"failed":[], "total_files":0, "session_id":self.session_id}
+
+        # Minimal IR overrides (expand if your CSV lacks IR URLs)
+        self.ir_overrides = {
+            "PG":"https://www.pginvestor.com/",
+            "DIS":"https://thewaltdisneycompany.com/investor-relations/",
+            "JPM":"https://www.jpmorganchase.com/ir",
+        }
+
+        # Per-company nudges only for navigation shape (no year assumptions)
+        self.special = {"AMGN":self._strategy_amgn, "GS":self._strategy_gs, "MMM":self._strategy_mmm,
+                        "MSFT":self._strategy_msft, "V":self._strategy_visa}
+
+    def _log(self, obj):
+        with open(os.path.join(self.logdir, "debug.jsonl"), "a", encoding="utf-8") as f:
+            f.write(json.dumps(obj, default=str) + "\n")
+
+    def _setup_selenium(self):
+        options = Options()
+        options.add_argument("--headless=new")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+
+        # Create unique user data directory for this session to avoid conflicts
+        import tempfile
+        user_data_dir = tempfile.mkdtemp(prefix=f"chrome_session_{self.session_id}_")
+        options.add_argument(f"--user-data-dir={user_data_dir}")
+
+        # Additional isolation arguments
+        options.add_argument("--disable-web-security")
+        options.add_argument("--disable-features=VizDisplayCompositor")
+        options.add_argument(f"--remote-debugging-port=0")  # Let Chrome pick a random port
+
+        prefs={"profile.default_content_setting_values.images":2,"download.prompt_for_download":False}
+        options.add_experimental_option("prefs", prefs)
+
+        # Retry logic for driver creation
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                driver = webdriver.Chrome(options=options)
+                driver.set_page_load_timeout(40)
+                print(f"Chrome driver initialized successfully for session {self.session_id} (attempt {attempt + 1})")
+                return driver
+            except Exception as e:
+                print(f"Failed to initialize Chrome driver (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt == max_retries - 1:
+                    raise
+                time.sleep(2)  # Wait before retry
+
+    def _accept_cookies(self):
+        XPATHS = [
+            "//button[contains(@id,'onetrust-accept-btn')]",
+            "//button[contains(@class,'onetrust-accept-btn-handler')]",
+            "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept all')]",
+            "//button[contains(@class,'css') and contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
+            "//a[contains(@class,'trustarc') and contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
+            "//button[contains(@class,'truste-button') or contains(@class,'trustarc')]",
+            "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
+            "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'agree')]",
+            "//button[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'allow')]",
+            "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]",
+            "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'agree')]"
+        ]
+        for xp in XPATHS:
+            try:
+                elems = self.driver.find_elements(By.XPATH, xp)
+                for el in elems:
+                    if el.is_displayed():
+                        self.driver.execute_script("arguments[0].click();", el)
+                        time.sleep(0.7)
+                        return True
+            except Exception:
+                continue
+        return False
+
+    def _scroll(self, cycles=6, pause=0.8):
+        last = 0
+        for _ in range(cycles):
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(pause)
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
+            time.sleep(0.4)
+            cur = self.driver.execute_script("return document.body.scrollHeight")
+            if cur == last: break
+            last = cur
+        self.driver.execute_script("window.scrollTo(0,0);")
+        time.sleep(0.5)
+
+    def _download_if_doc(self, ticker, url, title):
+        try:
+            r = self.session.get(url, timeout=30, allow_redirects=True, verify=False)
+            if r.status_code != 200: return False
+            ct = r.headers.get("content-type","").lower()
+            data = r.content or b""
+            ok_ct = any(x in ct for x in ["pdf","presentation","powerpoint","ms-powerpoint","officedocument.presentationml.presentation"])
+            ok_ext = any(url.lower().endswith(ext) for ext in DOC_EXTS)
+            ok_sniff = data.startswith(b"%PDF") or data[:4]==b"PK\x03\x04"
+            if not (ok_ct or ok_ext or ok_sniff): return False
+            base = safe_dir(os.path.join(self.outdir, ticker))
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            safe_title = re.sub(r"[^A-Za-z0-9]+","", (title or "Quarterly_Report")).strip("")[:60]
+            ext = ".pdf" if data.startswith(b"%PDF") or url.lower().endswith(".pdf") else (".pptx" if "presentationml" in ct or url.lower().endswith(".pptx") else ".ppt")
+            path = os.path.join(base, f"{ticker}{ts}{safe_title}{ext}")
+            with open(path,"wb") as f: f.write(data)
+            print(f"      ✅ Saved: {os.path.basename(path)}")
+            self.stats["total_files"] += 1
+            return True
+        except Exception as e:
+            self._log({"stage":"download","ticker":ticker,"url":url,"err":str(e)})
+            return False
+
+    def _collect_ranked_candidates_from_soup(self, soup):
+        """
+        Collect anchors that look quarterly or point to detail pages;
+        rank by kind preference and position (earlier is better).
+        """
+        candidates = []
+        idx = 0
+        for a in soup.find_all("a", href=True):
+            idx += 1
+            href = a["href"]
+            text = a.get_text(" ", strip=True) or ""
+            full = urljoin(self.driver.current_url, href)
+            if not is_allowed_ir_link(self.driver.current_url, full): 
+                continue
+            low = (text + " " + href).lower()
+            # direct artifact
+            if is_pdfish_url(href) and text_is_quarterly(low):
+                kind = classify_kind(low)
+                score = PREF_KIND_SCORE.get(kind, 0) - idx*0.01
+                candidates.append(("direct", full, text, kind, score))
+                continue
+            # detail page to follow
+            if (("learn more" in low) or ("read more" in low) or text_is_quarterly(low)) and not is_pdfish_url(href):
+                kind = classify_kind(low)
+                score = PREF_KIND_SCORE.get(kind, 0) - idx*0.01 - 5  # slight penalty for follow
+                candidates.append(("follow", full, text, kind, score))
+        # sort by score desc
+        candidates.sort(key=lambda x: x[4], reverse=True)
+        return candidates
+
+    def _harvest_from_detail_page(self, ticker, limit):
+        got = 0
+        inner = BeautifulSoup(self.driver.page_source, "html.parser")
+        for b in inner.find_all("a", href=True):
+            if got >= limit: break
+            href2 = b["href"]; full2 = urljoin(self.driver.current_url, href2)
+            if not is_allowed_ir_link(self.driver.current_url, full2): 
+                continue
+            low = (b.get_text(" ", strip=True) + " " + href2).lower()
+            if is_pdfish_url(href2) and text_is_quarterly(low):
+                t2 = b.get_text(" ", strip=True) or "Quarterly Artifact"
+                if self._download_if_doc(ticker, full2, t2): got += 1
+        # If still nothing, allow any doc-ish artifact on detail page
+        if got == 0:
+            for b in inner.find_all("a", href=True):
+                if got >= limit: break
+                href2 = b["href"]; full2 = urljoin(self.driver.current_url, href2)
+                if not is_allowed_ir_link(self.driver.current_url, full2): 
+                    continue
+                if is_pdfish_url(href2):
+                    t2 = b.get_text(" ", strip=True) or "Report"
+                    if self._download_if_doc(ticker, full2, t2): got += 1
+        return got
+
+    def _sec_filings_route(self, ticker, limit=2):
+        """Navigate to SEC filings page (if present) and download top-most 10‑Q artifacts."""
+        got = 0
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        sec_link = None
+        for a in soup.find_all("a", href=True):
+            t = a.get_text(" ", strip=True).lower()
+            if "sec filing" in t or "sec filings" in t or t == "sec":
+                sec_link = urljoin(self.driver.current_url, a["href"]); break
+        if not sec_link: 
+            return 0
+        try:
+            self.driver.get(sec_link); time.sleep(2); self._accept_cookies(); self._scroll(2)
+            inner = BeautifulSoup(self.driver.page_source, "html.parser")
+            # assume newest rows are first; take first rows that mention 10-Q
+            for row in inner.find_all(["tr","article","li","div"]):
+                if got >= limit: break
+                tx = row.get_text(" ", strip=True).lower()
+                if any(t in tx for t in SEC_10Q_TERMS):
+                    for a in row.find_all("a", href=True):
+                        if got >= limit: break
+                        href = a["href"]; full = urljoin(self.driver.current_url, href)
+                        if is_allowed_ir_link(self.driver.current_url, full) and is_pdfish_url(href):
+                            if self._download_if_doc(ticker, full, a.get_text(" ", strip=True)): got += 1
+            self.driver.back(); time.sleep(1.2)
+        except Exception as e:
+            self._log({"stage":"sec_filings","ticker":ticker,"err":str(e)})
+        return got
+
+    # --------- Per-company nudges (no year logic) ----------
+    def _strategy_amgn(self, ticker):
+        # Try "EARNINGS"/Presentations sections
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        for a in soup.find_all("a", href=True):
+            t = a.get_text(" ", strip=True).lower()
+            if any(k in t for k in ["earnings","presentations","events"]):
+                url = urljoin(self.driver.current_url, a["href"])
+                try:
+                    self.driver.get(url); time.sleep(2); self._accept_cookies(); self._scroll(3)
+                    got = self._generic_grab(ticker, limit=self.per_company)
+                    if got >= 1: return got
+                    self.driver.back(); time.sleep(1)
+                except Exception: continue
+        return 0
+
+    def _strategy_gs(self, ticker):
+        # Home often exposes "Form 10‑Q" tile; click then pick doc
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        for a in soup.find_all("a", href=True):
+            txt = a.get_text(" ", strip=True).lower()
+            if ("form 10-q" in txt or "10-q" in txt):
+                url = urljoin(self.driver.current_url, a["href"])
+                try:
+                    self.driver.get(url); time.sleep(2); self._accept_cookies(); self._scroll(2)
+                    got = self._harvest_from_detail_page(ticker, limit=self.per_company)
+                    if got >= 1: return got
+                    self.driver.back(); time.sleep(1)
+                except Exception: continue
+        return self._generic_grab(ticker, limit=self.per_company)
+
+    def _strategy_mmm(self, ticker):
+        return self._generic_grab(ticker, limit=self.per_company)
+
+    def _strategy_msft(self, ticker):
+        got = self._sec_filings_route(ticker, limit=self.per_company)
+        if got >= 1: return got
+        return self._generic_grab(ticker, limit=self.per_company)
+
+    def _strategy_visa(self, ticker):
+        self._accept_cookies()
+        return self._generic_grab(ticker, limit=self.per_company)
+
+    # ----------------------- Generic page harvesting ---------------------
+    def _generic_grab(self, ticker, limit=2):
+        got = 0
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        candidates = self._collect_ranked_candidates_from_soup(soup)
+        # Iterate candidates by score/position; prioritize direct artifacts first
+        for kind, url, text, _k, _score in candidates:
+            if got >= limit: break
+            if kind == "direct":
+                if self._download_if_doc(ticker, url, text): got += 1
+        # Then follow best "follow" candidates
+        if got < limit:
+            for kind, url, text, _k, _score in candidates:
+                if got >= limit: break
+                if kind != "follow": continue
+                try:
+                    self.driver.get(url); time.sleep(2); self._accept_cookies(); self._scroll(2)
+                    got += self._harvest_from_detail_page(ticker, limit=limit-got)
+                    self.driver.back(); time.sleep(1.2)
+                except Exception as e:
+                    self._log({"stage":"follow_click","ticker":ticker,"url":url,"err":str(e)})
+        # As last resort, SEC filings
+        if got < limit:
+            got += self._sec_filings_route(ticker, limit=limit-got)
+        return got
+
+    # ------------------------------ Main flow ---------------------------
+    def process_company(self, ticker, company, ir_url):
+        print("\n" + "="*80)
+        print(f"{ticker} - {company}")
+        print("="*80)
+        self.stats["processed"] += 1
+
+        if ticker in self.ir_overrides and (not ir_url or "pg" in ticker.lower() or base_domain(urlparse(ir_url).hostname) != base_domain(urlparse(self.ir_overrides[ticker]).hostname)):
+            ir_url = self.ir_overrides[ticker]
+            print(f"  🔧 Using IR override: {ir_url}")
+
+        try:
+            self.driver.get(ir_url); time.sleep(2.5)
+        except Exception as e:
+            print("  ❌ Load error")
+            self.stats["failed"].append(ticker)
+            self._log({"stage":"load","ticker":ticker,"err":str(e)})
+            return 0
+
+        self._accept_cookies()
+        self._scroll(6)
+
+        got = 0
+        if ticker in self.special:
+            try:
+                got = self.special[ticker](ticker)
+            except Exception as e:
+                self._log({"stage":"special","ticker":ticker,"err":str(e)})
+        if got < self.per_company:
+            got += self._generic_grab(ticker, limit=self.per_company-got)
+
+        if got >= 1:
+            self.stats["successful"] += 1
+        else:
+            self.stats["failed"].append(ticker)
+        return got
+
+    def close(self):
+        try:
+            if self.driver:
+                self.driver.quit()
+                print(f"Chrome driver closed for session {self.session_id}")
+        except Exception as e:
+            print(f"Error closing driver for session {self.session_id}: {e}")
+
+        # Clean up temporary Chrome user data directory
+        try:
+            import shutil
+            import glob
+            temp_dirs = glob.glob(f"/tmp/chrome_session_{self.session_id}_*")
+            for temp_dir in temp_dirs:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                print(f"Cleaned up temp directory: {temp_dir}")
+        except Exception as e:
+            print(f"Error cleaning up temp directories for session {self.session_id}: {e}")
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Download quarterly reports from IR pages")
+    parser.add_argument("--json", default="output/ir_finder_results.json",
+                       help="Path to JSON file with IR page data")
+    parser.add_argument("--output", default="data/raw",
+                       help="Output directory for downloads")
+    parser.add_argument("--companies", nargs="+",
+                       help="Specific company tickers to process (default: all)")
+    parser.add_argument("--per-company", type=int, default=2,
+                       help="Max files to download per company")
+
+    args = parser.parse_args()
+
+    print("="*80)
+    print("AGGRESSIVE QUARTERLY REPORT DOWNLOADER (v3 - JSON input)")
+    print("="*80)
+
+    # Load JSON data
+    if not os.path.exists(args.json):
+        print(f"❌ JSON file not found: {args.json}")
+        return
+
+    with open(args.json, 'r') as f:
+        data = json.load(f)
+
+    companies = data.get("companies_processed", [])
+    if args.companies:
+        # Filter to specific companies
+        companies = [c for c in companies if c["ticker"] in args.companies]
+
+    if not companies:
+        print("❌ No companies found to process")
+        return
+
+    print(f"🚀 Processing {len(companies)} companies...")
+
+    dl = AggressiveQuarterlyDownloaderV3(outdir=args.output, per_company=args.per_company)
+    start = time.time()
+
+    try:
+        for company in companies:
+            ticker = company.get("ticker", "").strip()
+            company_name = company.get("company_name", "").strip() or ticker
+            ir_url = company.get("ir_url", "").strip() if company.get("ir_page_found") else None
+
+            # Apply IR overrides if needed
+            if not ir_url and ticker in dl.ir_overrides:
+                ir_url = dl.ir_overrides[ticker]
+
+            if not ir_url:
+                print(f"\n{ticker} - {company_name}\n  ⚠️ Missing IR URL; skipping")
+                dl.stats["failed"].append(ticker)
+                continue
+
+            got = dl.process_company(ticker, company_name, ir_url)
+            print(f"  → Downloaded {got} files")
+            time.sleep(1.0)
+
+        elapsed = time.time() - start
+        print("\n" + "="*80)
+        print("FINAL SUMMARY")
+        print("="*80)
+        print(f"⏱️  Total time: {elapsed/60:.1f} minutes")
+        print(f"✅ Successful: {dl.stats['successful']}/{dl.stats['processed']}")
+        print(f"📊 Total files: {dl.stats['total_files']}")
+        if dl.stats["failed"]:
+            print("\nFAILED Tickers: " + ", ".join([t for t in dl.stats["failed"] if t]))
+        print(f"\nArtifacts saved under: {dl.outdir}/TICKER/*.pdf|.pptx|.ppt")
+        print(f"Debug log: {dl.logdir}/debug.jsonl")
+
+        # Save summary to JSON
+        summary = {
+            "timestamp": datetime.now().isoformat(),
+            "total_companies": len(companies),
+            "successful_downloads": dl.stats['successful'],
+            "total_files": dl.stats['total_files'],
+            "failed_tickers": dl.stats['failed'],
+            "processing_time_minutes": round(elapsed/60, 2)
+        }
+
+        summary_file = os.path.join(args.output, "download_summary.json")
+        with open(summary_file, 'w') as f:
+            json.dump(summary, f, indent=2)
+        print(f"📊 Summary saved to {summary_file}")
+
+    finally:
+        dl.close()
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="output/ir_finder_results.json">
+{
+  "start_time": "2025-10-10T02:17:44.193732",
+  "companies_processed": [
+    {
+      "ticker": "AAPL",
+      "company_name": "Apple Inc.",
+      "company_url": "https://www.apple.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.apple.com/investor-relations/default.aspx",
+      "ir_page_title": "Investor Relations - Apple",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 110,
+      "timestamp": "2025-10-10T02:17:44.651903",
+      "error": null
+    },
+    {
+      "ticker": "AMGN",
+      "company_name": "Amgen Inc.",
+      "company_url": "https://www.amgen.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.amgen.com/",
+      "ir_page_title": "Investors | Amgen Inc.",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 55,
+      "timestamp": "2025-10-10T02:17:49.637466",
+      "error": null
+    },
+    {
+      "ticker": "AMZN",
+      "company_name": "Amazon.com Inc.",
+      "company_url": "https://www.amazon.com",
+      "ir_page_found": true,
+      "ir_url": "https://ir.aboutamazon.com/overview/default.aspx",
+      "ir_page_title": "Amazon.com, Inc. - Overview",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 85,
+      "timestamp": "2025-10-10T02:17:54.803753",
+      "error": null
+    },
+    {
+      "ticker": "AXP",
+      "company_name": "American Express",
+      "company_url": "https://www.americanexpress.com",
+      "ir_page_found": true,
+      "ir_url": "https://ir.americanexpress.com/investor-relations/default.aspx",
+      "ir_page_title": "American Express Company - Investor Relations",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 125,
+      "timestamp": "2025-10-10T02:18:00.135640",
+      "error": null
+    },
+    {
+      "ticker": "BA",
+      "company_name": "Boeing",
+      "company_url": "https://www.boeing.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.boeing.com/investors/overview/default.aspx",
+      "ir_page_title": "Boeing Company - Investors - Overview",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 95,
+      "timestamp": "2025-10-10T02:18:06.194295",
+      "error": null
+    },
+    {
+      "ticker": "CAT",
+      "company_name": "Caterpillar",
+      "company_url": "https://www.caterpillar.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.caterpillar.com/overview/default.aspx",
+      "ir_page_title": "Caterpillar Inc. - Overview",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 100,
+      "timestamp": "2025-10-10T02:18:11.830639",
+      "error": null
+    },
+    {
+      "ticker": "CRM",
+      "company_name": "Salesforce",
+      "company_url": "https://www.salesforce.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.salesforce.com/overview/default.aspx",
+      "ir_page_title": "Salesforce.com, Inc. - Salesforce Investor Relations",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 65,
+      "timestamp": "2025-10-10T02:18:18.198430",
+      "error": null
+    },
+    {
+      "ticker": "CSCO",
+      "company_name": "Cisco",
+      "company_url": "https://www.cisco.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.cisco.com/home/default.aspx",
+      "ir_page_title": "Investor Relations - Overview - Cisco",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 125,
+      "timestamp": "2025-10-10T02:18:24.366942",
+      "error": null
+    },
+    {
+      "ticker": "CVX",
+      "company_name": "Chevron",
+      "company_url": "https://www.chevron.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.chevron.com/",
+      "ir_page_title": "Privacy error",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 20,
+      "timestamp": "2025-10-10T02:18:30.832188",
+      "error": null
+    },
+    {
+      "ticker": "DIS",
+      "company_name": "The Walt Disney Company",
+      "company_url": "https://thewaltdisneycompany.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.thewaltdisneycompany.com/",
+      "ir_page_title": "Investor Relations - Stock Information, Events, Reports, Financial Information, Shareholder Information - The Walt Disney Company",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 65,
+      "timestamp": "2025-10-10T02:18:35.181428",
+      "error": null
+    },
+    {
+      "ticker": "GS",
+      "company_name": "Goldman Sachs",
+      "company_url": "https://www.goldmansachs.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.goldmansachs.com/investor",
+      "ir_page_title": "404 | Goldman Sachs",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 40,
+      "timestamp": "2025-10-10T02:18:39.609672",
+      "error": null
+    },
+    {
+      "ticker": "HD",
+      "company_name": "The Home Depot",
+      "company_url": "https://www.homedepot.com",
+      "ir_page_found": true,
+      "ir_url": "https://ir.homedepot.com/",
+      "ir_page_title": "The Home Depot",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 80,
+      "timestamp": "2025-10-10T02:18:46.366058",
+      "error": null
+    },
+    {
+      "ticker": "HON",
+      "company_name": "Honeywell",
+      "company_url": "https://www.honeywell.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.honeywell.com/",
+      "ir_page_title": "Investor Relations | Honeywell International Inc.",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 90,
+      "timestamp": "2025-10-10T02:18:54.077775",
+      "error": null
+    },
+    {
+      "ticker": "IBM",
+      "company_name": "IBM",
+      "company_url": "https://www.ibm.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.ibm.com/investor",
+      "ir_page_title": "Investor Relations | IBM",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 80,
+      "timestamp": "2025-10-10T02:20:29.505802",
+      "error": null
+    },
+    {
+      "ticker": "JNJ",
+      "company_name": "Johnson & Johnson",
+      "company_url": "https://www.jnj.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.jnj.com/overview/default.aspx",
+      "ir_page_title": "Investor Relations | Johnson & Johnson",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 90,
+      "timestamp": "2025-10-10T02:20:37.515020",
+      "error": null
+    },
+    {
+      "ticker": "JPM",
+      "company_name": "JPMorgan Chase",
+      "company_url": "https://www.jpmorganchase.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.jpmorganchase.com/",
+      "ir_page_title": "Home | JPMorganChase",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 35,
+      "timestamp": "2025-10-10T02:20:46.524709",
+      "error": null
+    },
+    {
+      "ticker": "KO",
+      "company_name": "Coca-Cola",
+      "company_url": "https://www.coca-colacompany.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.coca-colacompany.com/",
+      "ir_page_title": "The Coca-Cola Company (KO)",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 70,
+      "timestamp": "2025-10-10T02:20:52.637366",
+      "error": null
+    },
+    {
+      "ticker": "MCD",
+      "company_name": "McDonald's",
+      "company_url": "https://corporate.mcdonalds.com",
+      "ir_page_found": true,
+      "ir_url": "https://corporate.mcdonalds.com/investors",
+      "ir_page_title": "404 Not Found",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 20,
+      "timestamp": "2025-10-10T02:20:57.313995",
+      "error": null
+    },
+    {
+      "ticker": "MMM",
+      "company_name": "3M",
+      "company_url": "https://www.3m.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.3m.com/",
+      "ir_page_title": "3M Company (MMM)",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 105,
+      "timestamp": "2025-10-10T02:21:03.899777",
+      "error": null
+    },
+    {
+      "ticker": "MRK",
+      "company_name": "Merck",
+      "company_url": "https://www.merck.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.merck.com/investor-relations/",
+      "ir_page_title": "Investor relations - Merck.com",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 100,
+      "timestamp": "2025-10-10T02:21:12.329140",
+      "error": null
+    },
+    {
+      "ticker": "MSFT",
+      "company_name": "Microsoft",
+      "company_url": "https://www.microsoft.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.microsoft.com/en-us/investor/default",
+      "ir_page_title": "Home page",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 75,
+      "timestamp": "2025-10-10T02:21:20.564774",
+      "error": null
+    },
+    {
+      "ticker": "NKE",
+      "company_name": "Nike",
+      "company_url": "https://www.nike.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.nike.com/Home/default.aspx",
+      "ir_page_title": "NIKE, Inc. - Investor Relations - Home",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 65,
+      "timestamp": "2025-10-10T02:21:27.049307",
+      "error": null
+    },
+    {
+      "ticker": "NVDA",
+      "company_name": "NVIDIA",
+      "company_url": "https://www.nvidia.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.nvidia.com/home/default.aspx",
+      "ir_page_title": "NVIDIA Corporation - Home",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 100,
+      "timestamp": "2025-10-10T02:21:33.058183",
+      "error": null
+    },
+    {
+      "ticker": "PG",
+      "company_name": "Procter & Gamble",
+      "company_url": "https://us.pg.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.pginvestor.com/overview/default.aspx",
+      "ir_page_title": "Investor Relations | Procter & Gamble Investor Relations",
+      "strategy_used": "link_navigation",
+      "verification_score": 100,
+      "timestamp": "2025-10-10T02:21:39.657571",
+      "error": null
+    },
+    {
+      "ticker": "SHW",
+      "company_name": "The Sherwin-Williams Company",
+      "company_url": "https://www.sherwin-williams.com",
+      "ir_page_found": true,
+      "ir_url": "https://investors.sherwin-williams.com/investor-home/default.aspx",
+      "ir_page_title": "Sherwin-Williams - Investor Relations",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 80,
+      "timestamp": "2025-10-10T02:22:03.348373",
+      "error": null
+    },
+    {
+      "ticker": "TRV",
+      "company_name": "Travelers",
+      "company_url": "https://www.travelers.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.travelers.com/home/default.aspx",
+      "ir_page_title": "Travelers Investor Relations | Home",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 110,
+      "timestamp": "2025-10-10T02:22:10.358723",
+      "error": null
+    },
+    {
+      "ticker": "UNH",
+      "company_name": "UnitedHealth Group",
+      "company_url": "https://www.unitedhealthgroup.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.unitedhealthgroup.com/investors.html",
+      "ir_page_title": "Investor Information - UnitedHealth Group",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 110,
+      "timestamp": "2025-10-10T02:22:16.976421",
+      "error": null
+    },
+    {
+      "ticker": "V",
+      "company_name": "Visa",
+      "company_url": "https://www.visa.com",
+      "ir_page_found": true,
+      "ir_url": "https://investor.visa.com/",
+      "ir_page_title": "Visa - Investor Relations",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 100,
+      "timestamp": "2025-10-10T02:22:29.731665",
+      "error": null
+    },
+    {
+      "ticker": "VZ",
+      "company_name": "Verizon",
+      "company_url": "https://www.verizon.com",
+      "ir_page_found": true,
+      "ir_url": "https://www.verizon.com/about/investors",
+      "ir_page_title": "Investor & Shareholder Hub for News & Events | About Verizon",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 95,
+      "timestamp": "2025-10-10T02:22:35.779968",
+      "error": null
+    },
+    {
+      "ticker": "WMT",
+      "company_name": "Walmart",
+      "company_url": "https://corporate.walmart.com",
+      "ir_page_found": true,
+      "ir_url": "https://stock.walmart.com/",
+      "ir_page_title": "Walmart Inc. (WMT)",
+      "strategy_used": "subdomain_pattern",
+      "verification_score": 75,
+      "timestamp": "2025-10-10T02:23:10.341191",
+      "error": null
+    }
+  ],
+  "success_count": 30,
+  "failure_count": 0,
+  "dow30_updated": "November 8, 2024",
+  "end_time": "2025-10-10T02:23:19.995308"
+}
 </file>
 
 <file path=".gitignore">
