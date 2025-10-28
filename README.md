@@ -8,6 +8,17 @@ https://docs.google.com/document/d/1UVFqRVt933GgO8byZSwh3C2L7rw7a6rs8Pdzu08OguQ/
 
 https://northeastern-my.sharepoint.com/:v:/g/personal/gandhi_di_northeastern_edu/EeGy73bIe5dNt5lRXclX2MUBhGql5XYF32kPyeGhBkUJJw?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=du1RAB
 
+## Architecture
+
+![Dow 30 Earnings Intelligence Pipeline Architecture](dow_30_earnings_intelligence_pipeline.png)
+
+The pipeline consists of four main layers:
+
+1. **Data Collection Layer**: Python-based web scraping to extract Investor Relations URLs and download quarterly reports from Dow 30 company websites
+2. **Orchestration Layer**: Apache Airflow manages workflow scheduling, task dependencies, and automated execution
+3. **Processing Layer**: Docling parser extracts structured content from PDF documents (text, tables, images)
+4. **Storage Infrastructure**: AWS S3 buckets store raw and parsed documents, with PostgreSQL database for metadata management
+
 ## Prerequisites
 
 ### Required Software

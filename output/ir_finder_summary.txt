@@ -2,8 +2,8 @@
 INVESTOR RELATIONS PAGE FINDER - SUMMARY REPORT
 ============================================================
 
-Session Start: 2025-10-10T13:44:17.422490
-Session End: 2025-10-10T13:50:43.347225
+Session Start: 2025-10-12T03:18:13.163357
+Session End: 2025-10-12T08:23:13.388131
 Dow 30 List Updated: November 8, 2024
 
 Total Companies: 30
@@ -13,8 +13,7 @@ Success Rate: 30/30 (100.0%)
 
 STRATEGIES USED:
 ----------------------------------------
-subdomain_pattern: 28
-link_navigation: 2
+subdomain_pattern: 30
 
 SUCCESSFUL COMPANIES:
 ----------------------------------------
@@ -29,7 +28,7 @@ AMZN: https://ir.aboutamazon.com/overview/default.aspx
   Score: 85
 AXP: https://ir.americanexpress.com/investor-relations/default.aspx
   Strategy: subdomain_pattern
-  Score: 125
+  Score: 105
 BA: https://investors.boeing.com/investors/overview/default.aspx
   Strategy: subdomain_pattern
   Score: 95
@@ -55,8 +54,8 @@ HD: https://ir.homedepot.com/
   Strategy: subdomain_pattern
   Score: 80
 HON: https://investor.honeywell.com/
-  Strategy: link_navigation
-  Score: 90
+  Strategy: subdomain_pattern
+  Score: 115
 IBM: https://www.ibm.com/investor
   Strategy: subdomain_pattern
   Score: 80
@@ -86,10 +85,10 @@ NKE: https://investors.nike.com/Home/default.aspx
   Score: 65
 NVDA: https://investor.nvidia.com/home/default.aspx
   Strategy: subdomain_pattern
-  Score: 100
-PG: https://www.pginvestor.com/overview/default.aspx
-  Strategy: link_navigation
-  Score: 100
+  Score: 90
+PG: https://us.pg.com/investors/
+  Strategy: subdomain_pattern
+  Score: 20
 SHW: https://investors.sherwin-williams.com/investor-home/default.aspx
   Strategy: subdomain_pattern
   Score: 80
@@ -102,7 +101,7 @@ UNH: https://www.unitedhealthgroup.com/investors.html
 V: https://investor.visa.com/
   Strategy: subdomain_pattern
   Score: 100
-VZ: https://www.verizon.com/about/investors
+VZ: https://investor.verizon.com/
   Strategy: subdomain_pattern
   Score: 35
 WMT: https://stock.walmart.com/
